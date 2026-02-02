@@ -43,7 +43,7 @@ class Trivia(commands.Cog):
                 answer = trivia_dict[category].get(question, None)
                 if not answer:
                     child = self.bot.random.randint(0, 3)
-                    message.components[0].children[child].click()
+                    await message.components[0].children[child].click()
                     self.bot.log("Triva fail", "red")
                     return
 
@@ -64,3 +64,4 @@ class Trivia(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Trivia(bot))
+
