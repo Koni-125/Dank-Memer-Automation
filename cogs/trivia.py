@@ -41,7 +41,6 @@ class Trivia(commands.Cog):
                 question = re.search(r"\*\*(.*?)\*\*", desc)[1]
                 category = message.embeds[0].fields[1].value
                 answer = trivia_dict[category].get(question, None)
-                self.bot.log("Triva recieved", "yellow")
                 if not answer:
                     child = self.bot.random.randint(0, 3)
                     message.components[0].children[child].click()
@@ -56,8 +55,9 @@ class Trivia(commands.Cog):
                             self.bot.log("Triva success", "green")
                         else:
                             self.bot.log("Triva attempting fail", "yellow")
-                            message.components[0].children[
-                                self.bot.random.choice([0, 1, 2, 3].pop(count))
+                            choices = [i for i in [0, 1, 2, 3] if i != count]
+                            await message.components[0].children[
+                                self.bot.random.choice(choices)
                             ].click()
                             self.bot.log("Triva fail - intentional", "red")
 
