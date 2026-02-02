@@ -1,0 +1,131 @@
+{
+    "commands": {
+        "trivia": {
+            "enabled": true,
+            "delay": 10,
+            "trivia_correct_chance": 0.75
+        },
+        "dig": {
+            "enabled": true,
+            "delay": 30
+        },
+        "fish": {
+            "enabled": false,
+            "delay": 30
+        },
+        "hunt": {
+            "enabled": true,
+            "delay": 30
+        },
+        "pm": {
+            "enabled": false,
+            "delay": 20
+        },
+        "beg": {
+            "enabled": true,
+            "delay": 40
+        },
+        "pet": {
+            "enabled": false,
+            "delay": 1800
+        },
+        "scratch": {
+            "enabled": false,
+            "delay": 10800
+        },
+        "hl": {
+            "enabled": false,
+            "delay": 20
+        },
+        "search": {
+            "enabled": false,
+            "delay": 20,
+            "priority": [
+                "phoenix pits",
+                "aeradella's home",
+                "shadow's realm",
+                "dog",
+                "grass",
+                "air",
+                "kitchen",
+                "dresser",
+                "mail box",
+                "bed",
+                "couch",
+                "pocket",
+                "toilet",
+                "washer",
+                "who asked"
+            ],
+            "second_priority": [
+                "fridge",
+                "twitter",
+                "vacuum"
+            ],
+            "avoid": [
+                "bank",
+                "discord",
+                "immortals dimension",
+                "laundromat",
+                "soul's chamber",
+                "police officer",
+                "tesla",
+                "supreme court"
+            ]
+        },
+        "dep_all": {
+            "enabled": true,
+            "delay": 30
+        },
+        "stream": {
+            "enabled": false,
+            "delay": 660,
+            "order": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                0,
+                0,
+                2,
+                2,
+                2
+            ]
+        },
+        "work": {
+            "enabled": false,
+            "delay": 3600
+        },
+        "daily": {
+            "enabled": false,
+            "delay": 86400
+        },
+        "crime": {
+            "enabled": false,
+            "delay": 40,
+            "priority": [
+                "hacking",
+                "tax evasion",
+                "fraud",
+                "eating a hot dog sideways",
+                "trespassing"
+            ],
+            "second_priority": [
+                "bank robbing",
+                "murder"
+            ],
+            "avoid": [
+                "arson",
+                "dui",
+                "treason"
+            ]
+        },
+        "adventure": {
+            "enabled": false,
+            "delay": 1800,
+            "adventure": "west"
+        }
+    }
+}
