@@ -81,7 +81,7 @@ def walker(components: list, message_details=None):
             # Accessing -> BUTTON_LIST.{element_name}
             BUTTONS_LIST.append(button(component))
         elif component_type == component_names.SELECT_MENU_COMPONENT:
-            COMPONENTS_LIST.append(select_menu(component))
+            COMPONENTS_LIST.append(select_menu(component, message_details))
         elif component_type == component_names.SECTION_COMPONENT:
             # Both accessory and components are bundled together.
             # Currently only a thumbnail or button component..
@@ -152,7 +152,7 @@ class select_menu_options:
 
 class select_menu:
     # Actual select menu
-    def __init__(self, component: dict):
+    def __init__(self, component: dict, message_details):
         self.component_name = COMPONENT_NAMES[component["type"]]
         self.options = []
         if component.get("options"):
@@ -160,6 +160,50 @@ class select_menu:
                 self.options.append(select_menu_options(item))
         self.custom_id = component.get("custom_id")
         self.placeholder = component.get("placeholder")
+
+        self._message_channel_id = message_details["message_channel"]
+        self._message_id = message_details["message_id"]
+        self._message_flag = message_details["message_flag"]
+        self._author_id = message_details["message_author_id"]
+
+        self._options = []
+        for item in self.options:
+            self._options.append(item.value)
+
+    async def select(self, values: list, session, headers, guild_id):
+        if (
+            self._message_channel_id
+            and self._message_id
+            and self._message_flag
+            and self._author_id
+        ):
+            req_json = {
+                "type": 3,
+                "application_id": str(self._author_id),
+                "guild_id": guild_id,
+                "channel_id": self._message_channel_id,
+                "message_id": self._message_id,
+                "session_id": session,
+                "message_flags": self._message_flag,
+                "data": {
+                    "component_type": 3,
+                    "custom_id": self.custom_id,
+                    "type": 3,
+                    "values": values,
+                },
+            }
+
+            async with aiohttp.ClientSession() as http:
+                async with http.post(
+                    "https://discord.com/api/v9/interactions",
+                    json=req_json,
+                    headers=headers,
+                ) as resp:
+                    if resp.status != 204:
+                        text = await resp.text()
+                        print(f"Component selection failed ({resp.status}): {text}")
+                        return False
+                    return True
 
 
 class section:

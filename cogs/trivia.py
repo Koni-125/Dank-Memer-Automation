@@ -57,9 +57,11 @@ class Trivia(commands.Cog):
                             self.bot.log("Triva success", "green")
                         else:
                             choices = [i for i in [0, 1, 2, 3] if i != count]
-                            await message.components[0].children[
-                                self.bot.random.choice(choices)
-                            ].click()
+                            await (
+                                message.components[0]
+                                .children[self.bot.random.choice(choices)]
+                                .click()
+                            )
                             self.bot.log("Triva fail - intentional", "red")
 
 

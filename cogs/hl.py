@@ -17,7 +17,7 @@ class Hl(commands.Cog):
             embed = message.embeds[0]
             if embed.author and "high-low" in embed.author.name:
                 self.bot.log("hl detected", "green")
-                
+
                 num = int(re.search(r"\*\*(.*?)\*\*", embed.description)[1].title())
                 children = message.components[0].children
                 if num >= 50:

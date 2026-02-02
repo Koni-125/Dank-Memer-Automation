@@ -16,7 +16,7 @@ commands_min_cd = {
     "dep_all": 0,
     "dig": 20,
     "hl": 10,
-    "crime": 40
+    "crime": 40,
 }
 
 
@@ -84,6 +84,9 @@ class Commands(commands.Cog):
         ):
             return False
 
+        if self.bot.hold_command:
+            return False
+
         cd = self.get_cooldown(command_name)
 
         if time.time() - self.bot.last_ran[command_name] < cd:
@@ -106,6 +109,9 @@ class Commands(commands.Cog):
             self.bot.last_ran[command] = time.time()
             if command == "dep_all":
                 await self.bot.send_cmd(f"{self.bot.commands_dict[command]} all")
+                continue
+            if command == "fish":
+                await self.bot.send_cmd(f"{self.bot.commands_dict[command]} catch")
                 continue
             await self.bot.send_cmd(self.bot.commands_dict[command])
             continue
