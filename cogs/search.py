@@ -3,7 +3,7 @@ import random
 from discord.ext import commands
 
 
-class Crime(commands.Cog):
+class Search(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -37,4 +37,4 @@ class Crime(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(Crime(bot))
+    await bot.add_cog(Search(bot))

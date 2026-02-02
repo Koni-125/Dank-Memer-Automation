@@ -7,7 +7,6 @@ import threading
 from datetime import datetime
 
 import discord.errors
-import requests
 from discord.ext import commands
 
 import components_v2
@@ -28,11 +27,30 @@ def resource_path(relative_path):
 
 
 class Colors:
+    # normal colors
+    black = "\033[30m"
     red = "\033[31m"
     green = "\033[32m"
     yellow = "\033[33m"
+    blue = "\033[34m"
+    purple = "\033[35m"
+    cyan = "\033[36m"
+    white = "\033[37m"
     orange = "\033[93m"
+    pink = "\033[95m"
+
+    # light colors
+    lightblack = "\033[90m"
+    lightred = "\033[91m"
+    lightgreen = "\033[92m"
+    lightyellow = "\033[93m"
+    lightblue = "\033[94m"
+    lavender = "\033[95m"
+    lightcyan = "\033[96m"
+    lightwhite = "\033[97m"
+
     reset = "\033[0m"
+
 
 
 def custom_print(message, time=True):
@@ -214,12 +232,8 @@ if __name__ == "__main__":
     user_input_thread = threading.Thread(target=handle_user_input)
     user_input_thread.start()
 
-    # Fetch version information
-    version_url = "https://raw.githubusercontent.com/BridgeSenseDev/Dank-Memer-Grinder/main/resources/version.txt"
-    version = requests.get(version_url).text
-
     # Print header and version information
-    header = """
+    header = r"""
 ____              _       __  __                              ____      _           _
 |  _ \  __ _ _ __ | | __  |  \/  | ___ _ __ ___   ___ _ __    / ___|_ __(_)_ __   __| | ___ _ __
 | | | |/ _` | '_ \| |/ /  | |\/| |/ _ \ '_ ` _ \ / _ \ '__|  | |  _| '__| | '_ \ / _` |/ _ \ '__|
@@ -227,8 +241,8 @@ ____              _       __  __                              ____      _       
 |____/ \__,_|_| |_|_|\_\  |_|  |_|\___|_| |_| |_|\___|_|      \____|_|  |_|_| |_|\__,_|\___|_|
     """
     custom_print(header, False)
-    custom_print("\033[33mv1.5.2", False)
-    custom_print('\033[33mType "help" for a list of commands', False)
+    custom_print(f"{Colors.lavender}v1.5.2", False)
+    custom_print(f'{Colors.lightcyan}Type "help" for a list of commands', False)
 
     # Check for updates
     """if int(version.replace(".", "")) > 152:

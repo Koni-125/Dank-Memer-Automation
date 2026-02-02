@@ -5,6 +5,7 @@ from discord.ext import commands, tasks
 
 
 commands_min_cd = {
+    # Edit this and add `minimum cooldown` of items as we add new commands
     "hunt": 20,
     "beg": 40,
     "fish": 12,  # default
@@ -13,6 +14,8 @@ commands_min_cd = {
     "dig": 20,
     "hl": 10,
     "crime": 40,
+    "search": 25,
+    "pm": 20,
 }
 
 

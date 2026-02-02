@@ -67,6 +67,7 @@ class Fish(commands.Cog):
                             # Click fish catch button
                             for btn in message.buttons:
                                 if btn.label == "Go Fishing":
+                                    await self.bot.set_command_hold_stat(True)
                                     self.bot.log(
                                         "fishing - clicking go fishing btn", "yellow"
                                     )
@@ -86,6 +87,11 @@ class Fish(commands.Cog):
                                         self.bot.log(
                                             "fishing - clicking go fish failed", "red"
                                         )
+                                    await asyncio.sleep(8.5)
+                                    if self.bot.hold_command:
+                                        # prevent dead lock
+                                        await self.bot.set_command_hold_stat(False)
+
 
                     elif "Simple fishing mode" in component.content:
                         if not self.simple_fishing:
@@ -117,6 +123,7 @@ class Fish(commands.Cog):
                                     self.bot.log(
                                         "fishing - failed to sell fish", "green"
                                     )
+                        await self.bot.set_command_hold_stat(False)
 
     async def log_messages_edit(self, message):
         if message.channel_id != self.bot.channel.id:
@@ -164,6 +171,7 @@ class Fish(commands.Cog):
                                         self.bot.local_headers,
                                         str(self.bot.channel.guild.id),
                                     )
+                        await self.bot.set_command_hold_stat(False)
 
     @commands.Cog.listener()
     async def on_message(self, message):

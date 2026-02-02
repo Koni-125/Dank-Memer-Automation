@@ -1,18 +1,13 @@
 import random
-import asyncio, time
+import asyncio
+import time
 
 from discord.ext import commands
 
 
-class Crime(commands.Cog):
+class Pm(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-        pm_config = self.bot.settings_dict["commands"]["pm"]
-
-        self.priority = pm_config["priority"]
-        self.second_priority = pm_config["second_priority"]
-        self.avoid = pm_config["avoid"]
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -20,19 +15,29 @@ class Crime(commands.Cog):
             return
 
         if message.embeds:
-            if message.embeds[0].title == f"{self.bot.user.name}'s Meme Posting Session":
+            embed = message.embeds[0]
+            if embed.author and embed.author.name == f"{self.bot.user.name}'s Meme Posting Session":
+                self.bot.log("Attempting Postmeme", "yellow")
+                await self.bot.set_command_hold_stat(True)
                 await self.bot.select(message, 0, 0, random.randint(0, 3))
                 await asyncio.sleep(0.3)
                 await self.bot.select(message, 1, 0, random.randint(0, 3))
                 await asyncio.sleep(0.3)
                 await message.components[2].children[0].click()
+                await self.bot.set_command_hold_stat(False)
                 self.bot.last_ran["pm"] = time.time()
 
                 await asyncio.sleep(1)
-                embed = message.embeds[0].to_dict()
-                if "cannot post another meme for another 3 minutes" in embed["description"]:
-                    self.bot.last_ran["pm"] += 185
+
+                if (
+                    "You posted a dead meme, you cannot post another meme for another 2 minutes"
+                    in embed.description
+                ):
+                    # 3m = 180s
+                    self.bot.log("can't pm for 2 min", "red")
+                    self.bot.last_ran["pm"] += 125
+                
 
 
 async def setup(bot):
-    await bot.add_cog(Crime(bot))
+    await bot.add_cog(Pm(bot))
