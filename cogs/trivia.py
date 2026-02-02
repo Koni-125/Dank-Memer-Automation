@@ -35,6 +35,9 @@ class Trivia(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.channel.id != self.bot.channel.id:
+            return
+
         if message.embeds:
             desc = message.embeds[0].description
             if "seconds to answer" in desc:
@@ -49,12 +52,10 @@ class Trivia(commands.Cog):
 
                 for count, i in enumerate(message.components[0].children):
                     if i.label == answer:
-                        self.bot.log("Triva attempting success", "yellow")
                         if random.random() <= self.chance:
                             await i.click()
                             self.bot.log("Triva success", "green")
                         else:
-                            self.bot.log("Triva attempting fail", "yellow")
                             choices = [i for i in [0, 1, 2, 3] if i != count]
                             await message.components[0].children[
                                 self.bot.random.choice(choices)
@@ -64,4 +65,3 @@ class Trivia(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Trivia(bot))
-
