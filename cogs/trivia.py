@@ -26,13 +26,6 @@ class Trivia(commands.Cog):
             "trivia_correct_chance"
         ]
 
-    """async def log_messages(self, message):
-        print(message.content, "from trivia")
-        if message.channel_id == self.bot.channel_id:
-            if message.components:
-                for component in message.components:
-                    """
-
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.channel.id != self.bot.channel.id:

@@ -2,7 +2,7 @@
 
 - [x] trivia
 - [x] dig
-- [ ] fish
+- [x] fish
 - [x] hunt
 - [ ] pm
 - [x] beg

@@ -1,22 +1,25 @@
 {
     "commands": {
         "trivia": {
-            "enabled": false,
+            "enabled": true,
             "delay": 10,
             "trivia_correct_chance": 0.75
         },
         "dig": {
-            "enabled": false,
+            "enabled": true,
             "delay": 30
         },
         "fish": {
             "enabled": true,
-            "sellAsCash": false,
-            "simpleFishing": true,
+            "sell": {
+                "enabled": true,
+                "asCash": false
+            },
+            "simpleFishing": false,
             "delay": 30
         },
         "hunt": {
-            "enabled": false,
+            "enabled": true,
             "delay": 30
         },
         "pm": {
@@ -24,7 +27,7 @@
             "delay": 20
         },
         "beg": {
-            "enabled": false,
+            "enabled": true,
             "delay": 40
         },
         "pet": {
@@ -36,7 +39,7 @@
             "delay": 10800
         },
         "hl": {
-            "enabled": false,
+            "enabled": true,
             "delay": 20
         },
         "search": {
@@ -76,7 +79,7 @@
             ]
         },
         "dep_all": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
         "stream": {

@@ -64,13 +64,21 @@ class MessageDispatcher:
     """
 
     def __init__(self):
-        self._handlers = []
+        self._message_handlers = []
+        self._edit_handlers = []
 
-    def register(self, func):
-        self._handlers.append(func)
+    def register(self, func, edit=False):
+        if not edit:
+            self._message_handlers.append(func)
+        else:
+            self._edit_handlers.append(func)
 
-    async def dispatch(self, message):
-        for handler in self._handlers:
+    async def dispatch_on_message(self, message):
+        for handler in self._message_handlers:
+            await handler(message)
+
+    async def dispatch_on_edit(self, message):
+        for handler in self._edit_handlers:
             await handler(message)
 
 
@@ -99,6 +107,10 @@ async def start_bot(token, channel_id):
             self.log = log
             self.message_dispatcher = MessageDispatcher()
             self.channel = None
+            # --
+            self.hold_command = False
+            self.state_event = asyncio.Event()
+            # --
 
             self.commands_dict = {
                 "trivia": "trivia",
@@ -124,12 +136,21 @@ async def start_bot(token, channel_id):
 
             for command in self.commands_dict:
                 self.last_ran[command] = 0
-            print(self.last_ran)
 
         async def send_cmd(self, content):
             if self.state:
                 # send text based command
                 await self.channel.send(f"pls {content}")
+
+        async def set_command_hold_stat(self, value):
+            if value:
+                self.hold_command = True
+                self.state_event.set()
+            else:
+                while not self.hold_command:
+                    await self.state_event.wait()
+                self.hold_command = False
+                self.state_event.clear()
 
         async def setup_hook(self):
             # self.update.start()
@@ -141,17 +162,21 @@ async def start_bot(token, channel_id):
                     # print(f'{filename[:-3]}')
                     await self.load_extension(f"cogs.{filename[:-3]}")
             self.local_headers = await components_v2.headers.generate_headers()
+            self.local_headers["Authorization"] = self.token
             self.log(f"Logged in as {self.user}", "green")
             self.state = True
 
         async def on_socket_raw_receive(self, msg):
             parsed_msg = json.loads(msg)
-            if parsed_msg.get("t") != "MESSAGE_CREATE":
+            if parsed_msg.get("t") not in ["MESSAGE_CREATE", "MESSAGE_UPDATE"]:
                 return
 
             message = components_v2.message.get_message_obj(parsed_msg["d"])
 
-            await self.message_dispatcher.dispatch(message)
+            if parsed_msg["t"] == "MESSAGE_CREATE":
+                await self.message_dispatcher.dispatch_on_message(message)
+            else:
+                await self.message_dispatcher.dispatch_on_edit(message)
 
     client = MyClient(token, channel_id)
     try:

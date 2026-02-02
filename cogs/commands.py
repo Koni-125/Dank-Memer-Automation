@@ -1,11 +1,7 @@
 import asyncio
-import json
 import time
 
 from discord.ext import commands, tasks
-
-with open("config.json", "r") as config_file:
-    config_dict = json.load(config_file)
 
 
 commands_min_cd = {
