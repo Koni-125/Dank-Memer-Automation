@@ -16,6 +16,7 @@ commands_min_cd = {
     "dep_all": 0,
     "dig": 20,
     "hl": 10,
+    "crime": 40
 }
 
 

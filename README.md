@@ -14,7 +14,7 @@
 - [ ] stream
 - [ ] work
 - [ ] daily
-- [ ] crime
+- [x] crime
 - [ ] adventure
 
 Credits
