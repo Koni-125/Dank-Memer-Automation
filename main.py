@@ -152,6 +152,14 @@ async def start_bot(token, channel_id):
                 self.hold_command = False
                 self.state_event.clear()
 
+        async def select(self, message, component, children, option, delay=None):
+            await asyncio.sleep(random.randint(1, 2))
+            try:
+                select_menu = message.components[component].children[children]
+                await select_menu.choose(select_menu.options[option])
+            except (discord.errors.HTTPException, discord.errors.InvalidData):
+                pass
+
         async def setup_hook(self):
             # self.update.start()
             self.settings_dict = get_config()
