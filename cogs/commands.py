@@ -77,7 +77,6 @@ class Commands(commands.Cog):
 
     def should_run(self, command_name):
         # Checks whether a command must be ran.
-        print(f"must we run {command_name}?")
         if (
             not self.bot.settings_dict["commands"][command_name]["enabled"]
             or not self.bot.state
@@ -88,27 +87,21 @@ class Commands(commands.Cog):
 
         if time.time() - self.bot.last_ran[command_name] < cd:
             return False
-        print("passed")
-
         return True
 
     @tasks.loop()
     async def commands_handler(self):
-        print("here at start")
         if not self.bot.state:
             await asyncio.sleep(0.5)
             return
 
         shuffled_commands = list(self.bot.commands_dict)[:]
         self.bot.random.shuffle(shuffled_commands)
-        print(shuffled_commands)
 
         for command in shuffled_commands:
             await asyncio.sleep(self.bot.random.uniform(0.5, 2))
             if not self.should_run(command):
-                print("nope")
                 continue
-            print("yes!")
             self.bot.last_ran[command] = time.time()
             if command == "dep_all":
                 await self.bot.send_cmd(f"{self.bot.commands_dict[command]} all")
