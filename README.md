@@ -4,12 +4,12 @@
 - [x] dig
 - [x] fish
 - [x] hunt
-- [ ] pm
+- [x] pm
 - [x] beg
 - [ ] pet
 - [ ] scratch
 - [x] hl
-- [ ] search
+- [x] search
 - [x] dep_all
 - [ ] stream
 - [ ] work
