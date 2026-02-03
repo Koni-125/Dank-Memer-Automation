@@ -1,7 +1,20 @@
 import contextlib
 import asyncio
+import json
+import os, sys
 
 from discord.ext import commands
+
+
+def resource_path(relative_path):
+    if hasattr(sys, "_MEIPASS"):
+        # noinspection PyProtectedMember
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+
+with open(resource_path("resources/adventure.json")) as file:
+    adventure_dict = json.load(file)
 
 
 class Adventure(commands.Cog):
@@ -55,7 +68,7 @@ class Adventure(commands.Cog):
                 return
 
             question = embed["description"].split("\n")[0]
-            for q, answer in self.bot.adventure_config["adventure"][
+            for q, answer in adventure_dict["adventure"][
                 self.adventure
             ].items():
                 if q.lower() in question.lower():
