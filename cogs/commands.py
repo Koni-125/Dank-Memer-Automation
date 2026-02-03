@@ -16,6 +16,7 @@ commands_min_cd = {
     "crime": 40,
     "search": 25,
     "pm": 20,
+    "adventure": 30*60 #not sure what's the cooldown
 }
 
 
