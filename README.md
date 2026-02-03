@@ -15,7 +15,7 @@
 - [ ] work
 - [ ] daily
 - [x] crime
-- [ ] adventure
+- [x] adventure
 
 Credits
 ----
