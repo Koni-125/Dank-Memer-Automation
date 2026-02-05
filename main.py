@@ -170,6 +170,17 @@ async def start_bot(token, channel_id):
                 self.hold_command = False
                 self.state_event.clear()
 
+        async def is_valid_command(self, message, command) -> bool:
+            if message.channel.id != self.channel_id or message.author.id != 270904126974590976:
+                return False
+            
+            if message.reference is not None:
+                if message.reference.resolved is not None:
+                    if message.reference.resolved.content != f'pls {command}' and message.reference.resolved.author != self.bot.user.id:
+                        return False
+            
+            return True
+
         async def select(self, message, component, children, option, delay=None):
             await asyncio.sleep(random.randint(1, 2))
             try:
