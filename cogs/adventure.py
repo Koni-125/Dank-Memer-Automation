@@ -13,7 +13,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-with open(resource_path("resources/adventure.json")) as file:
+with open(resource_path("resources/adventure.json"), encoding="utf-8") as file:
     adventure_dict = json.load(file)
 
 
