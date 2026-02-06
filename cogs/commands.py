@@ -64,6 +64,8 @@ class Commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.sleep_time = approximate_minimum_cooldown()
+        self.minCommandCD = self.settings_dict["settings"]["minCommandDelay"]
+        self.maxCommandCD = self.settings_dict["settings"]["maxCommandDelay"]
 
     async def cog_load(self):
         print(f"starting..., approx min {self.sleep_time}")
@@ -103,7 +105,7 @@ class Commands(commands.Cog):
         self.bot.random.shuffle(shuffled_commands)
 
         for command in shuffled_commands:
-            await asyncio.sleep(self.bot.random.uniform(0.5, 2))
+            await asyncio.sleep(self.bot.random.uniform(self.minCommandCD, self.maxCommandCD))
             if not self.should_run(command):
                 continue
             self.bot.last_ran[command] = time.time()

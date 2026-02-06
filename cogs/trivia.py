@@ -39,7 +39,8 @@ class Trivia(commands.Cog):
                 answer = trivia_dict[category].get(question, None)
                 if not answer:
                     child = self.bot.random.randint(0, 3)
-                    await message.components[0].children[child].click()
+                    await self.bot.click(message, 0, child)
+                    # await message.components[0].children[child].click()
                     self.bot.log("Triva fail", "red")
                     return
 
@@ -50,11 +51,12 @@ class Trivia(commands.Cog):
                             self.bot.log("Triva success", "green")
                         else:
                             choices = [i for i in [0, 1, 2, 3] if i != count]
-                            await (
-                                message.components[0]
-                                .children[self.bot.random.choice(choices)]
-                                .click()
-                            )
+                            # await (
+                            #     message.components[0]
+                            #     .children[self.bot.random.choice(choices)]
+                            #     .click()
+                            # )
+                            await self.bot.click(message, 0 , self.bot.random.choice(choices))
                             self.bot.log("Triva fail - intentional", "red")
 
 

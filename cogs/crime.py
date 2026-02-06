@@ -20,19 +20,19 @@ class Crime(commands.Cog):
 
         if message.embeds:
             if "What crime do you want to commit?" in message.embeds[0].description:
-                children = message.components[0].children
+                children = list(enumerate(message.components[0].children))
                 random.shuffle(children)
-                for count, button in enumerate(children):
+                for count, button in children:
                     if button.label.lower() in self.priority:
-                        await button.click()
+                        await self.bot.click(message, 0, count)
                         return
                 for count, button in enumerate(children):
                     if button.label.lower() in self.second_priority:
-                        await button.click()
+                        await self.bot.click(message, 0, count)
                         return
                 for count, button in enumerate(children):
                     if button.label.lower() not in self.avoid:
-                        await button.click()
+                        await self.bot.click(message, 0, count)
                         return
 
 

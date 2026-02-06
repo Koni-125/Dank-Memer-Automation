@@ -170,7 +170,7 @@ async def start_bot(token, channel_id):
                 self.hold_command = False
                 self.state_event.clear()
 
-        async def is_valid_command(self, message, command) -> bool:
+        async def is_valid_command(self, message, command) -> bool: #unused for now
             if message.channel.id != self.channel_id or message.author.id != 270904126974590976:
                 return False
             
@@ -181,8 +181,15 @@ async def start_bot(token, channel_id):
             
             return True
 
+        async def click(self, message, component, children, delay=None):
+            await asyncio.sleep(random.randint(self.commands_dict["settings"]["minButtonClickDelay"], ["settings"]["maxButtonClickDelay"]))
+            try:
+                await message.components[component].children[children].click()
+            except (discord.errors.HTTPException, discord.errors.InvalidData):
+                pass
+            
         async def select(self, message, component, children, option, delay=None):
-            await asyncio.sleep(random.randint(1, 2))
+            await asyncio.sleep(random.randint(self.commands_dict["settings"]["minButtonClickDelay"], ["settings"]["maxButtonClickDelay"]))
             try:
                 select_menu = message.components[component].children[children]
                 await select_menu.choose(select_menu.options[option])
