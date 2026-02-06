@@ -132,5 +132,21 @@
             "delay": 1800,
             "adventure": "west"
         }
+    },
+    "settings" : {
+        "cooldowns" :     {
+            "minButtonClickDelay" : 0.5,
+            "maxButtonClickDelay" : 1.5,
+            "minCommandDelay" : 0.5,
+            "maxCommandDelay" : 1.5,
+            "minBreakCooldown" : 3600,
+            "maxBreakCooldown" : 10800,
+            "minBreakDuration" : 1800,
+            "maxBreakDuration" : 18000
+        },
+        "webhooklogging": false,
+        "webhookURL": "",
+        "breaks": true
+
     }
 }

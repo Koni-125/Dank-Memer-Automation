@@ -43,8 +43,7 @@ class Adventure(commands.Cog):
             if "choose items you want to" in embed["title"]:
                 for count, component in enumerate(after.components):
                     if component.children[0].label == "Start":
-                        await after.components[count].children[0].click()
-                        # await self.bot.click(after, count, 0)
+                        await self.bot.click(after, count, 0)
                         return
                 return
             
@@ -58,13 +57,12 @@ class Adventure(commands.Cog):
                 with contextlib.suppress(AttributeError):
                     button = after.components[i].children[1]
                     if not button.disabled and button.emoji.id == 1067941108568567818:
-                        await button.click()
-                        # await self.bot.click(after, i, 1)
+                        await self.bot.click(after, i, 1)
                         return
 
             if "Catch one of em!" in embed["description"]:
-                await after.components[0].children[2].click()
-                await after.components[1].children[1].click()
+                await self.bot.click(after, 0 , 2)
+                await self.bot.click(after, 1 , 1)
                 return
 
             question = embed["description"].split("\n")[0]
@@ -74,7 +72,7 @@ class Adventure(commands.Cog):
                 if q.lower() in question.lower():
                     for count, button in enumerate(after.components[0].children):
                         if button.label.lower() == answer.lower():
-                            await after.components[0].children[count].click()
+                            await self.bot.click(after, 0, count)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -90,8 +88,7 @@ class Adventure(commands.Cog):
                         await self.bot.select(message, 0, 0, count)
                         if not message.components[1].children[0].disabled:
                             await asyncio.sleep(0.5)
-                            await message.components[1].children[0].click()
-                            # await self.bot.click(message, 1, 0)
+                            await self.bot.click(message, 1, 0)
                         else:
                             await self.bot.set_command_hold_stat(False)
 

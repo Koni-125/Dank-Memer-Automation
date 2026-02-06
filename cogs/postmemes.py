@@ -23,7 +23,7 @@ class Pm(commands.Cog):
                 await asyncio.sleep(0.3)
                 await self.bot.select(message, 1, 0, random.randint(0, 3))
                 await asyncio.sleep(0.3)
-                await message.components[2].children[0].click()
+                await self.bot.click(message, 2 ,0)
                 await self.bot.set_command_hold_stat(False)
                 self.bot.last_ran["pm"] = time.time()
 
