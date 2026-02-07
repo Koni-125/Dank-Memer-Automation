@@ -7,7 +7,7 @@ Use at your own risk. Always comply with:
 - Local laws and regulations
 
 The developers are not responsible for any
-consequences resulting from the use of this tool. (i don't care if u get banned ngl)
+consequences resulting from the use of this tool. 
 
 
 
