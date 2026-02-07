@@ -32,6 +32,24 @@ consequences resulting from the use of this tool. (i don't care if u get banned 
 │ 📅 monthly     │ ⚠️ In Progress       │
 └────────────────┴──────────────────────┘
 
+Command        │ Status      
+🪓 dig         │ ✅ Fully Functional  
+🏹 hunt        │ ✅ Fully Functional  
+🥺 beg         │ ✅ Fully Functional  
+🔍 search      │ ✅ Fully Functional  
+🚔 crime       │ ✅ Fully Functional  
+🗺️ adventure   │ ✅ Fully Functional  
+🎣 fish        │ ✅ Fully Functional  
+📈 high-low    │ ✅ Fully Functional  
+🖼️ postmeme    │ ✅ Fully Functional  
+❓ trivia       │ ✅ Fully Functional  
+💼 work        │ ⚠️ In Progress       
+🧹 tidy        │ ⚠️ In Progress       
+🎫 scratch     │ ⚠️ In Progress       
+📅 daily       │ ⚠️ In Progress       
+📅 weekly      │ ⚠️ In Progress       
+📅 monthly     │ ⚠️ In Progress 
+
 
 
 # Coming Soon! (Under Active Development)
