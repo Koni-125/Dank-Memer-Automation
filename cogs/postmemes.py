@@ -16,7 +16,8 @@ class Pm(commands.Cog):
 
         if message.embeds:
             embed = message.embeds[0]
-            if embed.author and embed.author.name == f"{self.bot.user.name}'s Meme Posting Session":
+            if embed.author and f"{self.bot.user.global_name}'s Meme" in embed.author.name:
+                print("hello")
                 self.bot.log("Attempting Postmeme", "yellow")
                 await self.bot.set_command_hold_stat(True)
                 await self.bot.select(message, 0, 0, random.randint(0, 3))

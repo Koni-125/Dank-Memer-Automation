@@ -11,6 +11,8 @@ from discord.ext import commands
 
 import components_v2
 
+from utils.custom_logger import CustomLogger
+
 
 def get_config():
     try:
@@ -120,9 +122,8 @@ async def start_bot(token, channel_id):
             )
             self.state = False
             self.settings_dict = None
-            self.channel_id = channel  # CHANNEL!!! also check token
+            self.channel_id = int(channel)  # CHANNEL!!! also check token
             self.token = token
-            self.log = log
             self.message_dispatcher = MessageDispatcher()
             self.channel = None
             # --
@@ -143,7 +144,7 @@ async def start_bot(token, channel_id):
                 "search": "search",
                 "dep_all": "deposit",
                 "stream": "stream",
-                "work": "work",
+                "work": "work shift",
                 "daily": "daily",
                 "crime": "crime",
                 "adventure": "adventure",
@@ -174,22 +175,69 @@ async def start_bot(token, channel_id):
             if message.channel.id != self.channel_id or message.author.id != 270904126974590976:
                 return False
             
-            if message.reference is not None:
-                if message.reference.resolved is not None:
-                    if message.reference.resolved.content != f'pls {command}' and message.reference.resolved.author != self.bot.user.id:
-                        return False
+            if not self.settings_dict["settings"]["slashCommandMode"]:
+                if message.reference is not None:
+                    if message.reference.resolved is not None:
+                        if message.reference.resolved.content != f'pls {command}' and message.reference.resolved.author != self.bot.user.id:
+                            return False
+            else:
+                if self.settings_dict["settings"]["flowMode"]:
+                    if message.reference is not None:
+                        if message.reference.resolved is not None:
+                            if not message.reference.resolved.ephemeral:
+                                return False
+                else:
+                    pass
             
             return True
 
         async def click(self, message, component, children, delay=None):
-            await asyncio.sleep(random.randint(self.commands_dict["settings"]["minButtonClickDelay"], ["settings"]["maxButtonClickDelay"]))
+            # await self.set_command_hold_stat(True)
+            # await asyncio.sleep(
+            #     random.randint(
+            #         self.settings_dict_dict["settings"]["cooldowns"]["minButtonClickDelay"], 
+            #         self.settings_dict_duct["settings"]["cooldowns"]["maxButtonClickDelay"]
+            #         )
+            #     )
+            # await self.set_command_hold_stat(False)
             try:
                 await message.components[component].children[children].click()
-            except (discord.errors.HTTPException, discord.errors.InvalidData):
-                pass
+            except (discord.errors.HTTPException, discord.errors.InvalidData) as e:
+                print("\n--- [DISCORD API ERROR] ---")
+                
+                # 1. Get the HTTP Status (e.g., 400, 401, 403, 429)
+                status = getattr(e, 'status', 'Unknown Status')
+                
+                # 2. Get the Discord Internal Error Code (e.g., 50035)
+                code = getattr(e, 'code', 'No Error Code')
+                
+                # 3. Get the raw text/message from the API
+                # Most dpy-self errors have a .text or .message attribute
+                error_msg = getattr(e, 'text', str(e))
+                
+                print(f"Status: {status}")
+                print(f"Discord Code: {code}")
+                print(f"Details: {error_msg}")
+                
+                # 4. Check for common self-bot failures
+                if status == 429:
+                    print("CRITICAL: You are being rate limited. Increase your asyncio.sleep() times.")
+                elif status == 400:
+                    print("FAILED: Invalid Interaction. Likely the custom_id expired or the message is too old.")
+                elif status == 403:
+                    print("FAILED: Forbidden. Check if the message is ephemeral or if you lack permissions.")
+                    
+                print("---------------------------\n")
+            # except (discord.errors.HTTPException, discord.errors.InvalidData) as e:
+            #     pass
             
         async def select(self, message, component, children, option, delay=None):
-            await asyncio.sleep(random.randint(self.commands_dict["settings"]["minButtonClickDelay"], ["settings"]["maxButtonClickDelay"]))
+            # await asyncio.sleep(
+            #     random.randint(
+            #         self.commands_dict["settings"]["cooldowns"]["minButtonClickDelay"], 
+            #         self.commands_duct["settings"]["cooldowns"]["maxButtonClickDelay"]
+            #         )
+            #     )
             try:
                 select_menu = message.components[component].children[children]
                 await select_menu.choose(select_menu.options[option])
@@ -199,6 +247,9 @@ async def start_bot(token, channel_id):
         async def setup_hook(self):
             # self.update.start()
             self.settings_dict = get_config()
+            self.logger = CustomLogger()
+            # self.log = self.logger.log
+            self.log = log
             self.channel = await self.fetch_channel(self.channel_id)
 
             for filename in os.listdir(resource_path("./cogs")):
@@ -209,6 +260,11 @@ async def start_bot(token, channel_id):
             self.local_headers["Authorization"] = self.token
             self.log(f"Logged in as {self.user}", "green")
             self.state = True
+            self.worth = {
+                "coins" : 0,
+                "inventory": 0,
+                "net" : 0
+            }
 
         async def on_socket_raw_receive(self, msg):
             parsed_msg = json.loads(msg)
