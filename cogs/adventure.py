@@ -53,10 +53,11 @@ class Adventure(commands.Cog):
                 await self.bot.set_command_hold_stat(False)
                 return
 
-            for i in range(2):
+            for i in range(3):
                 with contextlib.suppress(AttributeError):
                     button = after.components[i].children[1]
-                    if not button.disabled and button.emoji.id == 1067941108568567818:
+                    # if not button.disabled and button.emoji.id == 1067941108568567818:
+                    if not button.disabled and button.emoji.id == 1379166099895091251:
                         await self.bot.click(after, i, 1)
                         return
 
@@ -78,10 +79,9 @@ class Adventure(commands.Cog):
     async def on_message(self, message):
         if message.channel.id != self.bot.channel_id:
             return
-
         with contextlib.suppress(KeyError):
             embed = message.embeds[0].to_dict()
-            if embed["author"]["name"] == "Choose an Adventure":
+            if "Choose an Adventure" in embed["author"]["name"]:
                 await self.bot.set_command_hold_stat(True)
                 for count, i in enumerate(message.components[0].children[0].options):
                     if i.value == self.adventure:

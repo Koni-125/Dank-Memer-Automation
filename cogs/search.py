@@ -26,11 +26,11 @@ class Search(commands.Cog):
                     if button.label.lower() in self.priority:
                         await self.bot.click(message, 0, count)
                         return
-                for count, button in enumerate(children):
+                for count, button in children:
                     if button.label.lower() in self.second_priority:
                         await self.bot.click(message, 0, count)
                         return
-                for count, button in enumerate(children):
+                for count, button in children:
                     if button.label.lower() not in self.avoid:
                         await self.bot.click(message, 0, count)
                         return

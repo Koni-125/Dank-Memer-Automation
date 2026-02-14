@@ -16,7 +16,8 @@ commands_min_cd = {
     "crime": 40,
     "search": 25,
     "pm": 20,
-    "adventure": 30*60 #not sure what's the cooldown
+    "adventure": 30*60,
+    "work": 60*30 #not sure what's the cooldown
 }
 
 
@@ -64,8 +65,8 @@ class Commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.sleep_time = approximate_minimum_cooldown()
-        self.minCommandCD = self.settings_dict["settings"]["minCommandDelay"]
-        self.maxCommandCD = self.settings_dict["settings"]["maxCommandDelay"]
+        self.minCommandCD = self.bot.settings_dict["settings"]["cooldowns"]["minCommandDelay"]
+        self.maxCommandCD = self.bot.settings_dict["settings"]["cooldowns"]["maxCommandDelay"]
 
     async def cog_load(self):
         print(f"starting..., approx min {self.sleep_time}")

@@ -120,3 +120,7 @@ Desktop.ini
 
 # Tokens file
 **/tokens.txt
+
+tokens.txt
+cogs/__pycache__
+components_v2/__pycache__
