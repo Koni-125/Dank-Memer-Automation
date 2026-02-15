@@ -21,6 +21,13 @@ class Misc(commands.Cog):
                 if self.bot.hold_command:
                     await self.bot.set_command_hold_stat(False)
     
+        if message.embeds:
+            title = message.embeds[0].title
+            if "Verification Required" in title:
+                await self.bot.set_command_hold_stat(True)
+                self.bot.state = False
+                self.bot.log("Verification Detected: Paused", "red")
+                return
 
 async def setup(bot):
     await bot.add_cog(Misc(bot))
