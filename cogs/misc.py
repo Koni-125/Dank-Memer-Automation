@@ -16,7 +16,7 @@ class Misc(commands.Cog):
             title = message.embeds[0].title
             if "Hold Tight!" in title:
                 await self.bot.set_command_hold_stat(True)
-                asyncio.sleep(15)
+                await asyncio.sleep(15)
                 if self.bot.hold_command:
                     await self.bot.set_command_hold_stat(False)
     
