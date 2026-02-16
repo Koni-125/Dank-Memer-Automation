@@ -27,8 +27,8 @@ An advanced, high-efficiency automation suite for the Dank Memer Discord bot. De
 | 🥺 | **Beg** | ✅ Fully Functional | 🧪 Passed |
 | 🔍 | **Search** | ✅ Fully Functional | 🧪 Passed |
 | 🚔 | **Crime** | ✅ Fully Functional | 🧪 Passed |
-| 🗺️ | **Adventure** | ✅ Fully Functional | 🧪 Passed |
-| 🎣 | **Fish** | ✅ Fully Functional | 🧪 Passed |
+| 🗺️ | **Adventure** | ✅ Fully Functional | In Progress |
+| 🎣 | **Fish** | ✅ Basic Functionality | 🧪 Passed |
 | 📈 | **High-Low** | ✅ Fully Functional | 🧪 Passed |
 | 🖼️ | **Postmeme** | ✅ Fully Functional | 🧪 Passed |
 | ❓ | **Trivia** | ✅ Fully Functional | 🧪 Passed |
@@ -62,4 +62,5 @@ If you find this tool useful, please **Star this repository**! It helps us grow 
 
 Credits
 ----
+
 Based on [Dank Memer Grinder's](https://github.com/BridgeSenseDev/Dank-Memer-Grinder) CLI branch (now deleted)
