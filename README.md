@@ -20,23 +20,22 @@ An advanced, high-efficiency automation suite for the Dank Memer Discord bot. De
 
 ## 🛠️ Command Status
 
-| Icon | Command | Status |
-| :--- | :--- | :--- |
-| 🪓 | **Dig** | ✅ Fully Functional |
-| 🏹 | **Hunt** | ✅ Fully Functional |
-| 🥺 | **Beg** | ✅ Fully Functional |
-| 🔍 | **Search** | ✅ Fully Functional |
-| 🚔 | **Crime** | ✅ Fully Functional |
-| 🗺️ | **Adventure** | ✅ Fully Functional |
-| 🎣 | **Fish** | ✅ Fully Functional |
-| 📈 | **High-Low** | ✅ Fully Functional |
-| 🖼️ | **Postmeme** | ✅ Fully Functional |
-| ❓ | **Trivia** | ✅ Fully Functional |
-| 💼 | **Work** | ⚠️ In Progress |
-| 🧹 | **Tidy** | ⚠️ In Progress |
-| 🎫 | **Scratch** | ⚠️ In Progress |
-| 📅 | **Daily/Weekly/Monthly**| ⚠️ In Progress |
-
+| Icon | Command | Status | Testing |
+| :--- | :--- | :--- | :--- |
+| 🪓 | **Dig** | ✅ Fully Functional | 🧪 Passed |
+| 🏹 | **Hunt** | ✅ Fully Functional | 🧪 Passed |
+| 🥺 | **Beg** | ✅ Fully Functional | 🧪 Passed |
+| 🔍 | **Search** | ✅ Fully Functional | 🧪 Passed |
+| 🚔 | **Crime** | ✅ Fully Functional | 🧪 Passed |
+| 🗺️ | **Adventure** | ✅ Fully Functional | 🧪 Passed |
+| 🎣 | **Fish** | ✅ Fully Functional | 🧪 Passed |
+| 📈 | **High-Low** | ✅ Fully Functional | 🧪 Passed |
+| 🖼️ | **Postmeme** | ✅ Fully Functional | 🧪 Passed |
+| ❓ | **Trivia** | ✅ Fully Functional | 🧪 Passed |
+| 💼 | **Work** | ⚠️ In Progress | 🏗️ Internal Beta |
+| 🧹 | **Tidy** | ⚠️ In Progress | 🏗️ Internal Beta |
+| 🎫 | **Scratch** | ⚠️ In Progress | 🏗️ Internal Beta |
+| 📅 | **Daily/Weekly/Monthly** | ⚠️ In Progress | 🏗️ Internal Beta |
 ---
 
 ## 🚀 Upcoming Features (Under Active Development)
