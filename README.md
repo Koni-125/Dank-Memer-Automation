@@ -44,7 +44,9 @@ An advanced, high-efficiency automation suite for the Dank Memer Discord bot. De
 * 💊 **Auto-Use:** Intelligent item usage (Life Savers, Horseshoes, etc.).
 * 📊 **Analytics:** Detailed performance tracking and profit statistics.
 * 🔔 **Notifications:** Discord/Webhook alerts for events and items.
-
+* 🌊 **Flow System:** Advanced command sequencing and custom timing logic.
+* 📂 **File Logging:** Local storage of activity logs and error reports.
+* ⚖️ **Market Sell:** Automated listing and selling of items on the global market.
 ---
 
 ## 🌐 Join the Community
@@ -64,3 +66,4 @@ Credits
 ----
 
 Based on [Dank Memer Grinder's](https://github.com/BridgeSenseDev/Dank-Memer-Grinder) CLI branch (now deleted)
+
