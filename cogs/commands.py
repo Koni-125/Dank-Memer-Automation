@@ -17,7 +17,9 @@ commands_min_cd = {
     "search": 25,
     "pm": 20,
     "adventure": 30*60,
-    "work": 60*30 #not sure what's the cooldown
+    "daily": 3600*12,
+    "bal": 60,
+    "work": 60*30
 }
 
 

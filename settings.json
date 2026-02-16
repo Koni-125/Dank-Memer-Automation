@@ -23,7 +23,7 @@
             "delay": 30
         },
         "pm": {
-            "enabled": false,
+            "enabled": true,
             "delay": 20
         },
         "beg": {
@@ -43,7 +43,7 @@
             "delay": 20
         },
         "search": {
-            "enabled": false,
+            "enabled": true,
             "delay": 20,
             "priority": [
                 "phoenix pits",
@@ -78,8 +78,12 @@
                 "supreme court"
             ]
         },
+        "bal": {
+            "enabled": true,
+            "delay": 300
+        },
         "dep_all": {
-            "enabled": false,
+            "enabled": true,
             "delay": 30
         },
         "stream": {
@@ -100,11 +104,11 @@
             ]
         },
         "work": {
-            "enabled": false,
+            "enabled": true,
             "delay": 3600
         },
         "daily": {
-            "enabled": false,
+            "enabled": true,
             "delay": 86400
         },
         "crime": {
@@ -128,25 +132,24 @@
             ]
         },
         "adventure": {
-            "enabled": false,
+            "enabled": true,
             "delay": 1800,
             "adventure": "west"
         }
     },
-    "settings" : {
-        "cooldowns" :     {
-            "minButtonClickDelay" : 0.5,
-            "maxButtonClickDelay" : 1.5,
-            "minCommandDelay" : 0.5,
-            "maxCommandDelay" : 1.5,
-            "minBreakCooldown" : 3600,
-            "maxBreakCooldown" : 10800,
-            "minBreakDuration" : 1800,
-            "maxBreakDuration" : 18000
+    "settings": {
+        "cooldowns": {
+            "minButtonClickDelay": 0.5,
+            "maxButtonClickDelay": 1.5,
+            "minCommandDelay": 2,
+            "maxCommandDelay": 3.5,
+            "minBreakCooldown": 3600,
+            "maxBreakCooldown": 10800,
+            "minBreakDuration": 1800,
+            "maxBreakDuration": 18000
         },
         "webhooklogging": false,
         "webhookURL": "",
         "breaks": true
-
     }
 }

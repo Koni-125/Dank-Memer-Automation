@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dank Automation Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1118;
+      --card: #161b26;
+      --card-2: #1e2433;
+      --text: #e8edf7;
+      --muted: #9aa4b7;
+      --primary: #3ba3ff;
+      --good: #2ecc71;
+      --warn: #f1c40f;
+      --bad: #ff5f56;
+      --border: #2a3142;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top right, #1a2540 0%, var(--bg) 40%);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
+    h1 { margin: 0; font-size: 22px; }
+    .sub { color: var(--muted); margin-top: 4px; font-size: 13px; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(12, 1fr); margin-top: 16px; }
+    .card {
+      background: linear-gradient(180deg, var(--card), var(--card-2));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .stat { grid-column: span 3; }
+    .title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .value { margin-top: 8px; font-size: 24px; font-weight: 700; }
+    .bots { grid-column: span 7; }
+    .logs { grid-column: span 5; }
+    .settings { grid-column: span 12; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+    .ok { background: rgba(46, 204, 113, .14); color: var(--good); }
+    .hold { background: rgba(241, 196, 15, .14); color: var(--warn); }
+    .off { background: rgba(255, 95, 86, .14); color: var(--bad); }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-size: 12px; }
+    #logs {
+      height: 320px;
+      overflow: auto;
+      background: #0b0f16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    .log { margin: 0 0 6px 0; white-space: pre-wrap; }
+    .log.info { color: #86b7ff; }
+    .log.yellow, .log.warn { color: var(--warn); }
+    .log.green, .log.success { color: var(--good); }
+    .log.red, .log.error { color: var(--bad); }
+    button {
+      border: 1px solid #2f5589;
+      background: #11345f;
+      color: #cfe7ff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0b0f16;
+      color: var(--text);
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    @media (max-width: 900px) {
+      .stat { grid-column: span 6; }
+      .bots, .logs, .settings { grid-column: span 12; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Dank Automation Dashboard</h1>
+    <div class="sub">Local dashboard • http://127.0.0.1:3000</div>
+
+    <div class="grid">
+      <div class="card stat">
+        <div class="title">Uptime</div>
+        <div class="value" id="uptime">-</div>
+      </div>
+      <div class="card stat">
+        <div class="title">Bots</div>
+        <div class="value" id="botsCount">-</div>
+      </div>
+      <div class="card stat">
+        <div class="title">Commands Sent</div>
+        <div class="value" id="cmdCount">-</div>
+      </div>
+      <div class="card stat">
+        <div class="title">Net Worth (Sum)</div>
+        <div class="value" id="netWorth">-</div>
+      </div>
+
+      <div class="card bots">
+        <div class="row">
+          <strong>Bot Status</strong>
+          <button onclick="loadOverview()">Refresh</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Channel</th><th>State</th><th>Hold</th><th>Last Cmd</th><th>Coins</th><th>Inventory</th><th>Net</th></tr>
+          </thead>
+          <tbody id="botsTable"></tbody>
+        </table>
+      </div>
+
+      <div class="card logs">
+        <div class="row">
+          <strong>Live Logs</strong>
+          <button onclick="loadLogs()">Reload</button>
+        </div>
+        <div id="logs"></div>
+      </div>
+
+      <div class="card settings">
+        <div class="row">
+          <strong>settings.json</strong>
+          <div>
+            <button onclick="saveSettings()">Save</button>
+            <button onclick="reloadSettings()">Apply To Running Bots</button>
+          </div>
+        </div>
+        <textarea id="settingsEditor"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fmt(n) {
+      const x = Number(n || 0);
+      return Number.isFinite(x) ? x.toLocaleString() : "0";
+    }
+
+    function secToHms(s) {
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return `${h}h ${m}m ${sec}s`;
+    }
+
+    async function loadOverview() {
+      const res = await fetch("/api/overview");
+      const data = await res.json();
+      document.getElementById("uptime").textContent = secToHms(data.uptime_s || 0);
+      document.getElementById("botsCount").textContent = data.bots.length;
+      document.getElementById("cmdCount").textContent = fmt(data.total_commands);
+
+      let netSum = 0;
+      const rows = data.bots.map(b => {
+        const net = Number(b.worth?.net || 0);
+        netSum += Number.isFinite(net) ? net : 0;
+        const statePill = b.state ? '<span class="pill ok">online</span>' : '<span class="pill off">offline</span>';
+        const holdPill = b.hold_command ? '<span class="pill hold">hold</span>' : '<span class="pill ok">free</span>';
+        return `<tr>
+          <td>${b.channel_id ?? "-"}</td>
+          <td>${statePill}</td>
+          <td>${holdPill}</td>
+          <td>${b.last_command || "-"}</td>
+          <td>${fmt(b.worth?.coins)}</td>
+          <td>${fmt(b.worth?.inventory)}</td>
+          <td>${fmt(b.worth?.net)}</td>
+        </tr>`;
+      }).join("");
+
+      document.getElementById("botsTable").innerHTML = rows || '<tr><td colspan="7">No bots</td></tr>';
+      document.getElementById("netWorth").textContent = fmt(netSum);
+    }
+
+    async function loadLogs() {
+      const res = await fetch("/api/logs?limit=250");
+      const data = await res.json();
+      const html = (data.logs || []).map(l =>
+        `<p class="log ${l.level}">[${l.ts}] ${l.message}</p>`
+      ).join("");
+      const el = document.getElementById("logs");
+      el.innerHTML = html;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    async function loadSettings() {
+      const res = await fetch("/api/settings");
+      const data = await res.json();
+      document.getElementById("settingsEditor").value = JSON.stringify(data, null, 2);
+    }
+
+    async function saveSettings() {
+      const raw = document.getElementById("settingsEditor").value;
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        alert("Invalid JSON");
+        return;
+      }
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(parsed),
+      });
+      if (!res.ok) alert("Save failed");
+    }
+
+    async function reloadSettings() {
+      const res = await fetch("/api/settings/reload", { method: "POST" });
+      if (!res.ok) {
+        alert("Reload failed");
+        return;
+      }
+      await loadOverview();
+    }
+
+    async function tick() {
+      await Promise.all([loadOverview(), loadLogs()]);
+    }
+
+    loadSettings();
+    tick();
+    setInterval(tick, 3000);
+  </script>
+</body>
+</html>
