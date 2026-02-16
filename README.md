@@ -66,4 +66,3 @@ Credits
 ----
 
 Based on [Dank Memer Grinder's](https://github.com/BridgeSenseDev/Dank-Memer-Grinder) CLI branch (now deleted)
-
