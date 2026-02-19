@@ -10,7 +10,7 @@ def shadow_position(text: str):
     Returns column and row from `text` string.
     Dankmemer has colomn:row as suffix for custom_id for fishing buttons
     """
-    match = re.search(r"shadow:\s*([a-z]+)\s+([a-z]+)", text, re.IGNORECASE)
+    match = python re.search(r"Shadow:\s*(\w+)\s+(\w+)", text, re.IGNORECASE)
     if not match:
         return None
 
