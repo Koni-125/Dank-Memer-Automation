@@ -7,7 +7,7 @@ class Search(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        search_config = self.bot.settings_dict["commands"]["crime"]
+        search_config = self.bot.settings_dict["commands"]["search"]
 
         self.priority = search_config["priority"]
         self.second_priority = search_config["second_priority"]
