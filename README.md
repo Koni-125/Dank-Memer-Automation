@@ -4,6 +4,7 @@
 - [x] dig
 - [x] fish
 - [x] hunt
+- [x] tidy
 - [x] pm
 - [x] beg
 - [ ] pet
@@ -12,11 +13,18 @@
 - [x] search
 - [x] dep_all
 - [ ] stream
-- [ ] work
-- [ ] daily
+- [x] work
+- [x] daily
 - [x] crime
 - [x] adventure
 
+# Minigames
+- [ ] work
+- [ ] random chat events
+- [ ] dig
+- [ ] hunt
+
 Credits
 ----
+
 Based on [Dank Memer Grinder's](https://github.com/BridgeSenseDev/Dank-Memer-Grinder) CLI branch (now deleted)
