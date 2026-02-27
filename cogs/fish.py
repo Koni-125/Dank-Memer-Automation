@@ -175,9 +175,6 @@ class Fish(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.channel.id != self.bot.channel.id:
-            return
-
         if message.embeds:
             embed = message.embeds[0]
             if "Auto-Sell Trash" in embed.title:
@@ -188,9 +185,6 @@ class Fish(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        if before.channel.id != self.bot.channel.id:
-            return
-
         if after.embeds:
             embed = after.embeds[0]
             if "Simple Fishing" in embed.title:

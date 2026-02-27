@@ -9,9 +9,6 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self , message):
-        if message.channel.id != int(self.bot.channel_id):
-            return
-
         if message.embeds:
             title = message.embeds[0].title
             if "Hold Tight!" in title:

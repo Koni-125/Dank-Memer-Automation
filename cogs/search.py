@@ -15,9 +15,6 @@ class Search(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.channel.id != self.bot.channel.id:
-            return
-
         if message.embeds:
             if "Where do you want to search?" in message.embeds[0].description:
                 children = list(enumerate(message.components[0].children))
