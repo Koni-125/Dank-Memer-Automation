@@ -25,9 +25,6 @@ class Adventure(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        if after.channel.id != self.bot.channel_id:
-            return
-
         if after.reference is not None:
             if after.reference.resolved is not None:
                 if after.reference.resolved.content != 'pls adventure':
@@ -77,8 +74,6 @@ class Adventure(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.channel.id != self.bot.channel_id:
-            return
         with contextlib.suppress(KeyError):
             embed = message.embeds[0].to_dict()
             if "Choose an Adventure" in embed["author"]["name"]:
