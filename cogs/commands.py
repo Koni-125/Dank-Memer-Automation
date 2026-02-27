@@ -15,8 +15,9 @@ commands_min_cd = {
     "hl": 10,
     "crime": 40,
     "search": 25,
+    "tidy": 20,
     "pm": 20,
-    "adventure": 30*60,
+    "adventure": 60*30,
     "daily": 3600*12,
     "bal": 60,
     "work": 60*30

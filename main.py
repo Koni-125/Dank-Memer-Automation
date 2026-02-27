@@ -149,6 +149,7 @@ async def start_bot(token, channel_id):
                 "scratch": "scratch",
                 "hl": "highlow",
                 "search": "search",
+                "tidy": "tidy",
                 "dep_all": "deposit",
                 "stream": "stream",
                 "work": "work shift",
@@ -326,11 +327,11 @@ if __name__ == "__main__":
 
     # Print header and version information
     header = r"""
- ____  __  __    _    
-|  _ \|  \/  |  / \   
-| | | | |\/| | / _ \  
-| |_| | |  | |/ ___ \ 
-|____/|_|  |_/_/   \_\
+____              _       __  __                              ____      _           _
+|  _ \  __ _ _ __ | | __  |  \/  | ___ _ __ ___   ___ _ __    / ___|_ __(_)_ __   __| | ___ _ __
+| | | |/ _` | '_ \| |/ /  | |\/| |/ _ \ '_ ` _ \ / _ \ '__|  | |  _| '__| | '_ \ / _` |/ _ \ '__|
+| |_| | (_| | | | |   <   | |  | |  __/ | | | | |  __/ |     | |_| | |  | | | | | (_| |  __/ |
+|____/ \__,_|_| |_|_|\_\  |_|  |_|\___|_| |_| |_|\___|_|      \____|_|  |_|_| |_|\__,_|\___|_|
     """
     custom_print(header, False)
     custom_print(f"{Colors.lavender}v1.5.2", False)
@@ -370,4 +371,3 @@ if __name__ == "__main__":
             print(f"Bot {item} crashed:", e)
 
     t.join()
-

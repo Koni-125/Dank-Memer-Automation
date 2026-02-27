@@ -111,7 +111,7 @@ class Fish(commands.Cog):
                     elif "Are you sure you want to sell this fish" in component.content:
                         for btn in message.buttons:
                             if btn.label == "Confirm":
-                                await asyncio.sleep(self.bot.random.uniform(0.5, 0.8))
+                                await asyncio.sleep(self.bot.random.uniform(0.3, 0.5))
                                 stat = await btn.click(
                                     self.bot.ws.session_id,
                                     self.bot.local_headers,
@@ -164,7 +164,7 @@ class Fish(commands.Cog):
                             for btn in message.buttons:
                                 if btn.emoji and btn.emoji.name == btn_emoji_name:
                                     await asyncio.sleep(
-                                        self.bot.random.uniform(0.5, 0.8)
+                                        self.bot.random.uniform(0.3, 0.5)
                                     )
                                     await btn.click(
                                         self.bot.ws.session_id,

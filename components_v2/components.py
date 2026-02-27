@@ -140,7 +140,7 @@ class select_menu:
         if component.get("options"):
             for item in component["options"]:
                 self.options.append(select_menu_options(item))
-        self.custom_id = component.get("customId") or component.get("custom_id")
+        self.custom_id = component.get("custom_id") or component.get("customId")
         self.placeholder = component.get("placeholder")
 
         self._message_channel_id = message_details["message_channel"]
@@ -262,7 +262,7 @@ class accessory:
         self.component_name = COMPONENT_NAMES[data.get("type")]
         self.id = data.get("id")
         self.url = data.get("url")
-        self.custom_id = data.get("customId") or data.get("custom_id")
+        self.custom_id = data.get("custom_id") or data.get("customId")
         self.label = data.get("label")
         self.emoji = emoji(data.get("emoji", {}))
         self.disabled = data.get("disabled", False)

@@ -12,12 +12,11 @@
 - [x] search
 - [x] dep_all
 - [ ] stream
-- [x] work
-- [x] daily
+- [ ] work
+- [ ] daily
 - [x] crime
 - [x] adventure
 
 Credits
 ----
-
 Based on [Dank Memer Grinder's](https://github.com/BridgeSenseDev/Dank-Memer-Grinder) CLI branch (now deleted)

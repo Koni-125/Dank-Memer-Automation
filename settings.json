@@ -1,16 +1,16 @@
 {
     "commands": {
         "trivia": {
-            "enabled": true,
+            "enabled": false,
             "delay": 10,
             "trivia_correct_chance": 0.75
         },
         "dig": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
         "fish": {
-            "enabled": true,
+            "enabled": false,
             "sell": {
                 "enabled": true,
                 "asCash": false
@@ -19,15 +19,20 @@
             "delay": 30
         },
         "hunt": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
-        "pm": {
+        "tidy": {
             "enabled": true,
+            "delay": 40,
+            "tool": "vacuum"
+        },
+        "pm": {
+            "enabled": false,
             "delay": 20
         },
         "beg": {
-            "enabled": true,
+            "enabled": false,
             "delay": 40
         },
         "pet": {
@@ -39,11 +44,11 @@
             "delay": 10800
         },
         "hl": {
-            "enabled": true,
+            "enabled": false,
             "delay": 20
         },
         "search": {
-            "enabled": true,
+            "enabled": false,
             "delay": 20,
             "priority": [
                 "phoenix pits",
@@ -112,7 +117,7 @@
             "delay": 86400
         },
         "crime": {
-            "enabled": true,
+            "enabled": false,
             "delay": 40,
             "priority": [
                 "hacking",
@@ -132,7 +137,7 @@
             ]
         },
         "adventure": {
-            "enabled": true,
+            "enabled": false,
             "delay": 1800,
             "adventure": "west"
         }
