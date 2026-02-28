@@ -15,6 +15,9 @@ class Crime(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.channel.id != self.bot.channel.id:
+            return
+
         if message.embeds:
             if "What crime do you want to commit?" in message.embeds[0].description:
                 children = list(enumerate(message.components[0].children))

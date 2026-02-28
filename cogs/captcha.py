@@ -7,6 +7,9 @@ class Captcha(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.channel.id != self.bot.channel_id:
+            return
+
         if message.embeds:
             title = message.embeds[0].title
             if "Verification Required" in title:
