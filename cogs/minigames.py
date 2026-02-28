@@ -36,12 +36,6 @@ class Minigames(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        if (
-            after.channel.id != self.bot.channel_id
-            or not self.bot.state
-        ):
-            return
-
         for embed in before.embeds:
             embed = embed.to_dict()
             after_embed = after.embeds[0].to_dict()
@@ -205,12 +199,6 @@ class Minigames(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if (
-            message.channel.id != self.bot.channel_id
-            or not self.bot.state
-        ):
-            return
-
         for embed in message.embeds:
             embed = embed.to_dict()
             with contextlib.suppress(KeyError):
