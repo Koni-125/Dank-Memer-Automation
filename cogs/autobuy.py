@@ -84,6 +84,9 @@ class AutoBuy(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         try:
+            if message.channel.id != self.bot.channel.id:
+                return
+
 
             if message.embeds:
                 desc = message.embeds[0].description or ""
