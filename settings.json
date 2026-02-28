@@ -1,16 +1,16 @@
 {
     "commands": {
         "trivia": {
-            "enabled": true,
+            "enabled": false,
             "delay": 10,
             "trivia_correct_chance": 0.75
         },
         "dig": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
         "fish": {
-            "enabled": true,
+            "enabled": false,
             "sell": {
                 "enabled": true,
                 "asCash": false
@@ -19,15 +19,20 @@
             "delay": 30
         },
         "hunt": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
+        },
+        "tidy": {
+            "enabled": true,
+            "delay": 40,
+            "tool": "vacuum"
         },
         "pm": {
             "enabled": false,
             "delay": 20
         },
         "beg": {
-            "enabled": true,
+            "enabled": false,
             "delay": 40
         },
         "pet": {
@@ -39,7 +44,7 @@
             "delay": 10800
         },
         "hl": {
-            "enabled": true,
+            "enabled": false,
             "delay": 20
         },
         "search": {
@@ -78,8 +83,12 @@
                 "supreme court"
             ]
         },
+        "bal": {
+            "enabled": true,
+            "delay": 300
+        },
         "dep_all": {
-            "enabled": false,
+            "enabled": true,
             "delay": 30
         },
         "stream": {
@@ -100,15 +109,15 @@
             ]
         },
         "work": {
-            "enabled": false,
+            "enabled": true,
             "delay": 3600
         },
         "daily": {
-            "enabled": false,
+            "enabled": true,
             "delay": 86400
         },
         "crime": {
-            "enabled": true,
+            "enabled": false,
             "delay": 40,
             "priority": [
                 "hacking",
@@ -133,20 +142,19 @@
             "adventure": "west"
         }
     },
-    "settings" : {
-        "cooldowns" :     {
-            "minButtonClickDelay" : 0.5,
-            "maxButtonClickDelay" : 1.5,
-            "minCommandDelay" : 0.5,
-            "maxCommandDelay" : 1.5,
-            "minBreakCooldown" : 3600,
-            "maxBreakCooldown" : 10800,
-            "minBreakDuration" : 1800,
-            "maxBreakDuration" : 18000
+    "settings": {
+        "cooldowns": {
+            "minButtonClickDelay": 0.5,
+            "maxButtonClickDelay": 1.5,
+            "minCommandDelay": 2,
+            "maxCommandDelay": 3.5,
+            "minBreakCooldown": 3600,
+            "maxBreakCooldown": 10800,
+            "minBreakDuration": 1800,
+            "maxBreakDuration": 18000
         },
         "webhooklogging": false,
         "webhookURL": "",
         "breaks": true
-
     }
 }

@@ -5,6 +5,7 @@ import random
 import sys
 import threading
 from datetime import datetime
+from pathlib import Path
 
 import discord.errors
 from discord.ext import commands
@@ -12,6 +13,7 @@ from discord.ext import commands
 import components_v2
 
 from utils.custom_logger import CustomLogger
+from utils.dashboard_server import DashboardState, run_dashboard_server
 
 
 def get_config():
@@ -54,8 +56,12 @@ class Colors:
     reset = "\033[0m"
 
 
+DASHBOARD_STATE = DashboardState()
+ROOT_DIR = Path(__file__).resolve().parent
+
 
 def custom_print(message, time=True):
+    DASHBOARD_STATE.add_log("info", message)
     if not time:
         print(f"\r{message}", end="\n> ")
     else:
@@ -103,19 +109,18 @@ class MessageDispatcher:
 
 
 async def start_bot(token, channel_id):
-    @staticmethod
-    def log(text, color="default"):
-        color_code = {
-            "red": Colors.red,
-            "green": Colors.green,
-            "yellow": Colors.yellow,
-            "default": Colors.reset,
-        }.get(color, Colors.reset)
-
-        # Fix incorrect logs
-        custom_print(f"{color_code}Bot {channel_id}: {text}{Colors.reset}")
-
     class MyClient(commands.Bot):
+        def log(self, text, color="default"):
+            color_code = {
+                "red": Colors.red,
+                "green": Colors.green,
+                "yellow": Colors.yellow,
+                "default": Colors.reset,
+            }.get(color, Colors.reset)
+
+            who = self.user if self.user else f"Bot {self.channel_id}"
+            custom_print(f"{color_code}[{who}]: {text}{Colors.reset}")
+
         def __init__(self, token, channel):
             super().__init__(
                 command_prefix="-", self_bot=True, enable_debug_events=True
@@ -126,6 +131,8 @@ async def start_bot(token, channel_id):
             self.token = token
             self.message_dispatcher = MessageDispatcher()
             self.channel = None
+            self.sent_command_count = 0
+            self.last_sent_command = None
             # --
             self.hold_command = False
             self.state_event = asyncio.Event()
@@ -142,12 +149,14 @@ async def start_bot(token, channel_id):
                 "scratch": "scratch",
                 "hl": "highlow",
                 "search": "search",
+                "tidy": "tidy",
                 "dep_all": "deposit",
                 "stream": "stream",
                 "work": "work shift",
                 "daily": "daily",
                 "crime": "crime",
-                "adventure": "adventure",
+                "bal": "balance",
+                "adventure": "adventure"
             }
             self.last_ran = {}
             # discord.py-self's module sets global random to fixed seed. reset that, locally.
@@ -160,6 +169,9 @@ async def start_bot(token, channel_id):
             if self.state:
                 # send text based command
                 await self.channel.send(f"pls {content}")
+                self.log(f"Sent: pls {content}", "green")
+                self.sent_command_count += 1
+                self.last_sent_command = f"pls {content}"
 
         async def set_command_hold_stat(self, value):
             if value:
@@ -192,15 +204,15 @@ async def start_bot(token, channel_id):
             return True
 
         async def click(self, message, component, children, delay=None):
-            # await self.set_command_hold_stat(True)
-            # await asyncio.sleep(
-            #     random.randint(
-            #         self.settings_dict_dict["settings"]["cooldowns"]["minButtonClickDelay"], 
-            #         self.settings_dict_duct["settings"]["cooldowns"]["maxButtonClickDelay"]
-            #         )
-            #     )
-            # await self.set_command_hold_stat(False)
+            cooldowns = self.settings_dict["settings"]["cooldowns"]
+            wait_time = delay if delay is not None else self.random.uniform(
+                cooldowns["minButtonClickDelay"],
+                cooldowns["maxButtonClickDelay"],
+            )
+
+            await self.set_command_hold_stat(True)
             try:
+                await asyncio.sleep(wait_time)
                 await message.components[component].children[children].click()
             except (discord.errors.HTTPException, discord.errors.InvalidData) as e:
                 print("\n--- [DISCORD API ERROR] ---")
@@ -228,16 +240,20 @@ async def start_bot(token, channel_id):
                     print("FAILED: Forbidden. Check if the message is ephemeral or if you lack permissions.")
                     
                 print("---------------------------\n")
+            finally:
+                if self.hold_command:
+                    await self.set_command_hold_stat(False)
             # except (discord.errors.HTTPException, discord.errors.InvalidData) as e:
             #     pass
             
         async def select(self, message, component, children, option, delay=None):
-            # await asyncio.sleep(
-            #     random.randint(
-            #         self.commands_dict["settings"]["cooldowns"]["minButtonClickDelay"], 
-            #         self.commands_duct["settings"]["cooldowns"]["maxButtonClickDelay"]
-            #         )
-            #     )
+            cooldowns = self.settings_dict["settings"]["cooldowns"]
+            wait_time = delay if delay is not None else self.random.uniform(
+                cooldowns["minButtonClickDelay"],
+                cooldowns["maxButtonClickDelay"],
+            )
+
+            await asyncio.sleep(wait_time)
             try:
                 select_menu = message.components[component].children[children]
                 await select_menu.choose(select_menu.options[option])
@@ -249,7 +265,7 @@ async def start_bot(token, channel_id):
             self.settings_dict = get_config()
             self.logger = CustomLogger()
             # self.log = self.logger.log
-            self.log = log
+            # self.log = log
             self.channel = await self.fetch_channel(self.channel_id)
 
             for filename in os.listdir(resource_path("./cogs")):
@@ -265,6 +281,7 @@ async def start_bot(token, channel_id):
                 "inventory": 0,
                 "net" : 0
             }
+            DASHBOARD_STATE.register_bot(self)
 
         async def on_socket_raw_receive(self, msg):
             parsed_msg = json.loads(msg)
@@ -291,13 +308,15 @@ async def start_bot(token, channel_id):
     try:
         await client.start(token)
     except discord.errors.LoginFailure:
-        log("Invalid token", "red")
+        client.log("Invalid token", "red")
         await client.close()
     except (discord.errors.NotFound, ValueError):
-        log("Invalid channel", "red")
+        client.log("Invalid channel", "red")
         await client.close()
     except Exception as e:
         print(e)
+    finally:
+        DASHBOARD_STATE.unregister_bot(client)
 
 
 # Create and start the event loop in a separate thread
@@ -326,6 +345,15 @@ ____              _       __  __                              ____      _       
     custom_print(header, False)
     custom_print(f"{Colors.lavender}v1.5.2", False)
     custom_print(f'{Colors.lightcyan}Type "help" for a list of commands', False)
+    custom_print(f"{Colors.lightcyan}Dashboard: http://127.0.0.1:3000", False)
+
+    dashboard_thread = threading.Thread(
+        target=run_dashboard_server,
+        args=(DASHBOARD_STATE, ROOT_DIR / "settings.json", ROOT_DIR),
+        kwargs={"host": "127.0.0.1", "port": 3000},
+        daemon=True,
+    )
+    dashboard_thread.start()
 
     # Check for updates
     """if int(version.replace(".", "")) > 152:
