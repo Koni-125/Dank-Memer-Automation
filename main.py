@@ -290,15 +290,6 @@ async def start_bot(token, channel_id):
 
             message = components_v2.message.get_message_obj(parsed_msg["d"])
 
-            if not components_v2.message.is_message_for_user(message, self.user.id):
-                return
-
-            if message.channel.id != self.channel_id:
-                return
-
-            if not self.state:
-                return
-
             if parsed_msg["t"] == "MESSAGE_CREATE":
                 await self.message_dispatcher.dispatch_on_message(message)
             else:

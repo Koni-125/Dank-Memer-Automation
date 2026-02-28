@@ -10,7 +10,7 @@ def shadow_position(text: str):
     Returns column and row from `text` string.
     Dankmemer has colomn:row as suffix for custom_id for fishing buttons
     """
-    match = re.search(r"Shadow:\s*(\w+)\s+(\w+)", text, re.IGNORECASE)
+    match = re.search(r"shadow:\s*([a-z]+)\s+([a-z]+)", text, re.IGNORECASE)
     if not match:
         return None
 
@@ -111,7 +111,7 @@ class Fish(commands.Cog):
                     elif "Are you sure you want to sell this fish" in component.content:
                         for btn in message.buttons:
                             if btn.label == "Confirm":
-                                await asyncio.sleep(self.bot.random.uniform(0.3, 0.8))
+                                await asyncio.sleep(self.bot.random.uniform(0.3, 0.5))
                                 stat = await btn.click(
                                     self.bot.ws.session_id,
                                     self.bot.local_headers,
@@ -164,7 +164,7 @@ class Fish(commands.Cog):
                             for btn in message.buttons:
                                 if btn.emoji and btn.emoji.name == btn_emoji_name:
                                     await asyncio.sleep(
-                                        self.bot.random.uniform(0.5, 0.8)
+                                        self.bot.random.uniform(0.3, 0.5)
                                     )
                                     await btn.click(
                                         self.bot.ws.session_id,
@@ -175,6 +175,9 @@ class Fish(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.channel.id != self.bot.channel.id:
+            return
+
         if message.embeds:
             embed = message.embeds[0]
             if "Auto-Sell Trash" in embed.title:
@@ -185,6 +188,9 @@ class Fish(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
+        if before.channel.id != self.bot.channel.id:
+            return
+
         if after.embeds:
             embed = after.embeds[0]
             if "Simple Fishing" in embed.title:

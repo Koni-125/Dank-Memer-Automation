@@ -10,6 +10,9 @@ class Hl(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.channel.id != self.bot.channel.id:
+            return
+
         if message.embeds:
             embed = message.embeds[0]
             if embed.author and "high-low" in embed.author.name:
