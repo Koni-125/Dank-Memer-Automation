@@ -16,7 +16,8 @@ class Crime(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.embeds:
-            if "What crime do you want to commit?" in message.embeds[0].description:
+            desc = message.embeds[0].description or ""
+            if "What crime do you want to commit?" in desc:
                 children = list(enumerate(message.components[0].children))
                 random.shuffle(children)
                 for count, button in children:

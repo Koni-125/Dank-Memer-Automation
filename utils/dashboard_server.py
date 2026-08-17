@@ -80,7 +80,11 @@ def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: P
         return web.json_response(state.snapshot())
 
     async def api_logs(request):
-        limit = int(request.query.get("limit", "200"))
+        try:
+            limit = int(request.query.get("limit", "200"))
+        except ValueError:
+            limit = 200
+        limit = max(1, min(limit, 1200))
         snap = state.snapshot()
         return web.json_response({"logs": snap["logs"][-limit:]})
 

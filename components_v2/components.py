@@ -298,7 +298,7 @@ class accessory:
         else:
             self.is_clickable_button = False
 
-    async def click(self, session, headers, guild_id):
+    async def click(self, session, headers, guild_id, nonce=None):
         if self.is_clickable_button:
             if (
                 self._message_channel_id
@@ -306,10 +306,11 @@ class accessory:
                 and self._message_flag
                 and self._author_id
             ):
-                # 145.0.0.0
+                from discord.utils import _generate_nonce
+
                 req_json = {
                     "type": 3,
-                    # "nonce": generate_nonce(),
+                    "nonce": nonce or _generate_nonce(),
                     "application_id": str(self._author_id),
                     "guild_id": str(guild_id),
                     "channel_id": str(self._message_channel_id),

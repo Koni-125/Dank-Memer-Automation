@@ -38,10 +38,12 @@ class Minigames(commands.Cog):
     async def on_message_edit(self, before, after):
         for embed in before.embeds:
             embed = embed.to_dict()
+            if not after.embeds:
+                continue
             after_embed = after.embeds[0].to_dict()
 
             # Moleman
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if (
                     "Dodge the Worms!" in embed["description"]
                     and "Mole Man" in after_embed["description"]
@@ -59,7 +61,7 @@ class Minigames(commands.Cog):
             embed = embed.to_dict()
 
             # MoleMan
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Dodge the Worms!" in embed["description"]:
                     await asyncio.sleep(0.3)
                     moleman = embed["description"].splitlines()[5]
@@ -83,27 +85,27 @@ class Minigames(commands.Cog):
                         return
 
             # Football
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Hit the ball!" in embed["description"]:
                     self.bot.log("Solving Football Minigame", "yellow")
                     if embed["description"].splitlines()[2] == ":levitate:":
-                        await self.bot.click(after, 0, 2, [0, 0])
+                        await self.bot.click(after, 0, 2)
                     elif (
                         embed["description"].splitlines()[2]
                         == "<:emptyspace:827651824739156030>:levitate:"
                     ):
-                        await self.bot.click(after, 0, 0, [0, 0])
+                        await self.bot.click(after, 0, 0)
                     if (
                         embed["description"].splitlines()[2]
                         == "<:emptyspace:827651824739156030>"
                         "<:emptyspace:827651824739156030>:levitate:"
                     ):
-                        await self.bot.click(after, 0, 1, [0, 0])
+                        await self.bot.click(after, 0, 1)
                     self.bot.log("Solved Football Minigame", "green")
                     return
 
             # Basketball
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Dunk the ball!" in embed["description"]:
                     self.bot.log("Solving Basketball Minigame", "yellow")
                     if (
@@ -111,19 +113,19 @@ class Minigames(commands.Cog):
                         == "<:emptyspace:827651824739156030>"
                         "<:emptyspace:827651824739156030>:basketball:"
                     ):
-                        await self.bot.click(after, 0, 2, [0, 0])
+                        await self.bot.click(after, 0, 2)
                     elif (
                         embed["description"].splitlines()[2]
                         == "<:emptyspace:827651824739156030>:basketball:"
                     ):
                         await self.bot.click(after, 0, 1)
                     elif embed["description"].splitlines()[2] == ":basketball:":
-                        await self.bot.click(after, 0, 0, [0, 0])
+                        await self.bot.click(after, 0, 0)
                     self.bot.log("Solved Basketball Minigame", "green")
                     return
 
             # Dragon
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Dodge the Fireball" in embed["description"]:
                     self.bot.log("Solving Dragon Minigame", "yellow")
                     if (
@@ -145,7 +147,7 @@ class Minigames(commands.Cog):
                     self.bot.log("Solved Dragon Minigame", "green")
                     return
             # Catch the fish
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Catch the fish!" in embed["description"]:
                     self.bot.log("Solving Fish Minigame", "yellow")
                     if (
@@ -186,7 +188,7 @@ class Minigames(commands.Cog):
                     return
 
             # Attack boss
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Attack the boss by clicking" in embed["description"]:
                     if not after.components[0].children[0].disabled:
                         await asyncio.sleep(0.3)
@@ -201,14 +203,14 @@ class Minigames(commands.Cog):
     async def on_message(self, message):
         for embed in message.embeds:
             embed = embed.to_dict()
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Dodge the Worms!" in embed["description"]:
                     await self.bot.set_command_hold_stat(True)
                     # self.bot.pause_commands_timestamp = time.time()
                     self.bot.log("Solving Dodge Worms Minigame", "yellow")
 
             # Color match
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if (
                     "Look at each color next to the words closely!"
                     in embed["description"]
@@ -235,7 +237,7 @@ class Minigames(commands.Cog):
                     return
 
             # Emoji
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Look at the emoji closely!" in embed["description"]:
                     self.bot.log("Solving Emoji Minigame", "yellow")
                     await self.bot.set_command_hold_stat(True)
@@ -252,7 +254,7 @@ class Minigames(commands.Cog):
                     return
 
             # Repeat order
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if any(
                     i in embed["description"]
                     for i in ["Repeat Order", "word order.", "words order"]
@@ -277,7 +279,7 @@ class Minigames(commands.Cog):
                     return
 
             # Attack boss
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "Attack the boss by clicking" in embed["description"]:
                     self.bot.log("Solving Attack Boss Minigame", "yellow")
                     await self.bot.set_command_hold_stat(True)
@@ -286,7 +288,7 @@ class Minigames(commands.Cog):
                     return
 
             # F in the chat
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if embed["description"] == "F":
                     self.bot.log("Solving F In The Chat Minigame", "yellow")
                     await self.bot.click(message, 0, 0)
@@ -294,13 +296,15 @@ class Minigames(commands.Cog):
                     return
 
             # HighLow
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
                 if "I just chose a secret number" in embed["description"] and (
                     message.interaction and message.interaction.name != "highlow"
                 ):
                     num = int(
                         re.search("\*\*(.*?)\*\*", embed["description"])[1].title()
                     )
+                    # Buttons are [Lower, JACKPOT, Higher]. A high hint makes
+                    # "lower" more likely and vice versa.
                     if num >= 50:
                         await self.bot.click(message, 0, 0)
                     else:

@@ -29,7 +29,7 @@ class Trivia(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.embeds:
-            desc = message.embeds[0].description
+            desc = message.embeds[0].description or ""
             if "seconds to answer" in desc:
                 question = re.search(r"\*\*(.*?)\*\*", desc)[1]
                 category = message.embeds[0].fields[1].value

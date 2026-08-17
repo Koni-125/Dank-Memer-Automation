@@ -16,7 +16,8 @@ class Search(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.embeds:
-            if "Where do you want to search?" in message.embeds[0].description:
+            desc = message.embeds[0].description or ""
+            if "Where do you want to search?" in desc:
                 children = list(enumerate(message.components[0].children))
                 random.shuffle(children)
                 for count, button in children:

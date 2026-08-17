@@ -9,7 +9,7 @@ class Captcha(commands.Cog):
     async def on_message(self, message):
         if message.embeds:
             title = message.embeds[0].title
-            if "Verification Required" in title:
+            if title and "Verification Required" in title:
                 self.bot.captcha = True
 
 

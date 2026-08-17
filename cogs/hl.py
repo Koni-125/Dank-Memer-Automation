@@ -16,11 +16,13 @@ class Hl(commands.Cog):
                 self.bot.log("hl detected", "green")
 
                 num = int(re.search(r"\*\*(.*?)\*\*", embed.description)[1].title())
+                # Buttons are [Lower, JACKPOT, Higher]. A high hint makes
+                # "lower" more likely and vice versa.
                 children = message.components[0].children
                 if num >= 50:
-                    await self.bot.click(message, 0 ,0)
+                    await self.bot.click(message, 0, 0)
                 else:
-                    await self.bot.click(message, 0 ,2)
+                    await self.bot.click(message, 0, 2)
                 self.bot.last_ran["hl"] = time.time()
 
 

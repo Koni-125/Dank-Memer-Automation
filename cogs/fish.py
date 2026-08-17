@@ -2,6 +2,8 @@ import time
 import asyncio
 import re
 
+import components_v2
+
 from discord.ext import commands
 
 
@@ -45,85 +47,82 @@ class Fish(commands.Cog):
         if message.channel_id != self.bot.channel.id:
             return
 
-        if message.components:
-            for component in message.components:
-                """Current Location"""
-                if component.component_name == "text_display":
-                    if "Current Location" in component.content:
-                        if self.simple_fishing:
-                            # We are not on simple fishing, need to switch back simple fishing
-                            self.bot.last_ran["fish"] = (
-                                time.time() + 12
-                            )  # ensure command not reran
-                            await asyncio.sleep(self.bot.random.uniform(12, 13))
-                            self.bot.log(
-                                "fishing - attempting to switching back to simple mode",
-                                "yellow",
-                            )
+        for text in components_v2.message.text_display_contents(message):
+            """Current Location"""
+            if "Current Location" in text:
+                if self.simple_fishing:
+                    # We are not on simple fishing, need to switch back simple fishing
+                    self.bot.last_ran["fish"] = (
+                        time.time() + 12
+                    )  # ensure command not reran
+                    await asyncio.sleep(self.bot.random.uniform(12, 13))
+                    self.bot.log(
+                        "fishing - attempting to switching back to simple mode",
+                        "yellow",
+                    )
+                    await self.bot.set_command_hold_stat(True)
+                    self.bot.last_ran["fish"] = time.time()
+                    await self.bot.send_cmd("fish settings")
+                else:
+                    # Click fish catch button
+                    for btn in message.buttons:
+                        if btn.label == "Go Fishing":
                             await self.bot.set_command_hold_stat(True)
-                            self.bot.last_ran["fish"] = time.time()
-                            await self.bot.send_cmd("fish settings")
-                        else:
-                            # Click fish catch button
-                            for btn in message.buttons:
-                                if btn.label == "Go Fishing":
-                                    await self.bot.set_command_hold_stat(True)
-                                    self.bot.log(
-                                        "fishing - clicking go fishing btn", "yellow"
-                                    )
-                                    await asyncio.sleep(
-                                        self.bot.random.uniform(0.3, 0.5)
-                                    )
-                                    stat = await btn.click(
-                                        self.bot.ws.session_id,
-                                        self.bot.local_headers,
-                                        str(self.bot.channel.guild.id),
-                                    )
-                                    if stat:
-                                        self.bot.log(
-                                            "fishing - clicked go fishing btn", "yellow"
-                                        )
-                                    else:
-                                        self.bot.log(
-                                            "fishing - clicking go fish failed", "red"
-                                        )
-                                    await asyncio.sleep(8.5)
-                                    if self.bot.hold_command:
-                                        # prevent dead lock
-                                        await self.bot.set_command_hold_stat(False)
-
-
-                    elif "Simple fishing mode" in component.content:
-                        if not self.simple_fishing:
-                            # We are on simple fishing, need to switch back main
-                            self.bot.last_ran["fish"] = (
-                                time.time() + 12
-                            )  # ensure command not reran
-                            await asyncio.sleep(self.bot.random.uniform(12, 13))
                             self.bot.log(
-                                "fishing - attempting to switching back to normal mode",
-                                "yellow",
+                                "fishing - clicking go fishing btn", "yellow"
                             )
-                            await self.bot.set_command_hold_stat(True)
-                            self.bot.last_ran["fish"] = time.time()
-                            await self.bot.send_cmd("fish settings")
-
-                    elif "Are you sure you want to sell this fish" in component.content:
-                        for btn in message.buttons:
-                            if btn.label == "Confirm":
-                                await asyncio.sleep(self.bot.random.uniform(0.3, 0.8))
-                                stat = await btn.click(
-                                    self.bot.ws.session_id,
-                                    self.bot.local_headers,
-                                    str(self.bot.channel.guild.id),
+                            await asyncio.sleep(
+                                self.bot.random.uniform(0.3, 0.5)
+                            )
+                            stat = await btn.click(
+                                self.bot.ws.session_id,
+                                self.bot.local_headers,
+                                str(self.bot.channel.guild.id),
+                            )
+                            if stat:
+                                self.bot.log(
+                                    "fishing - clicked go fishing btn", "yellow"
                                 )
-                                if stat:
-                                    self.bot.log("fishing - sold fish", "green")
-                                else:
-                                    self.bot.log(
-                                        "fishing - failed to sell fish", "green"
-                                    )
-                        await self.bot.set_command_hold_stat(False)
+                            else:
+                                self.bot.log(
+                                    "fishing - clicking go fish failed", "red"
+                                )
+                            await asyncio.sleep(8.5)
+                            if self.bot.hold_command:
+                                # prevent dead lock
+                                await self.bot.set_command_hold_stat(False)
+
+            elif "Simple fishing mode" in text:
+                if not self.simple_fishing:
+                    # We are on simple fishing, need to switch back main
+                    self.bot.last_ran["fish"] = (
+                        time.time() + 12
+                    )  # ensure command not reran
+                    await asyncio.sleep(self.bot.random.uniform(12, 13))
+                    self.bot.log(
+                        "fishing - attempting to switching back to normal mode",
+                        "yellow",
+                    )
+                    await self.bot.set_command_hold_stat(True)
+                    self.bot.last_ran["fish"] = time.time()
+                    await self.bot.send_cmd("fish settings")
+
+            elif "Are you sure you want to sell this fish" in text:
+                for btn in message.buttons:
+                    if btn.label == "Confirm":
+                        await asyncio.sleep(self.bot.random.uniform(0.3, 0.8))
+                        stat = await btn.click(
+                            self.bot.ws.session_id,
+                            self.bot.local_headers,
+                            str(self.bot.channel.guild.id),
+                        )
+                        if stat:
+                            self.bot.log("fishing - sold fish", "green")
+                        else:
+                            self.bot.log(
+                                "fishing - failed to sell fish", "green"
+                            )
+                await self.bot.set_command_hold_stat(False)
 
     async def log_messages_edit(self, message):
         if message.channel_id != self.bot.channel.id:
@@ -136,7 +135,11 @@ class Fish(commands.Cog):
                         self.bot.log("fishing - attempting to catch fish", "yellow")
                         # Main fishing area (normal)
                         desc = fetch_desc(message.components)
+                        if desc is None:
+                            continue
                         col, row = shadow_position(desc)
+                        if col is None or row is None:
+                            continue
                         # Click button:
                         for btn in message.buttons:
                             # Check last 3 chars match column row combo
@@ -177,7 +180,7 @@ class Fish(commands.Cog):
     async def on_message(self, message):
         if message.embeds:
             embed = message.embeds[0]
-            if "Auto-Sell Trash" in embed.title:
+            if embed.title and "Auto-Sell Trash" in embed.title:
                 await asyncio.sleep(self.bot.random.uniform(0.3, 0.5))
                 select_menu = message.components[0].children[0]
                 await select_menu.choose(select_menu.options[9])
@@ -187,7 +190,7 @@ class Fish(commands.Cog):
     async def on_message_edit(self, before, after):
         if after.embeds:
             embed = after.embeds[0]
-            if "Simple Fishing" in embed.title:
+            if embed.title and "Simple Fishing" in embed.title:
                 await asyncio.sleep(self.bot.random.uniform(0.3, 0.5))
                 btn = after.components[1].children[1 if self.simple_fishing else 0]
                 if btn and not btn.disabled:
