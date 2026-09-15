@@ -6,6 +6,7 @@ import random
 import sys
 import threading
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 import discord.errors
@@ -17,9 +18,21 @@ import components_v2
 from utils.custom_logger import CustomLogger
 from utils.dashboard_server import DashboardState, run_dashboard_server
 
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        TimedRotatingFileHandler(
+            LOG_DIR / "app.log",
+            when="midnight",
+            backupCount=14,
+            encoding="utf-8",
+        ),
+    ],
 )
 
 
@@ -28,7 +41,8 @@ def get_config():
         with open("settings.json", "r") as config_file:
             return json.load(config_file)
     except FileNotFoundError:
-        print("ERROR - whoops, no settings file found!")
+        logging.error("ERROR - whoops, no settings file found!")
+        return None
 
 
 def resource_path(relative_path):
@@ -63,7 +77,7 @@ class Colors:
     reset = "\033[0m"
 
 
-DASHBOARD_STATE = DashboardState()
+DASHBOARD_STATE = DashboardState(LOG_DIR)
 ROOT_DIR = Path(__file__).resolve().parent
 
 
@@ -148,7 +162,8 @@ async def start_bot(token, channel_id):
                 "daily": "daily",
                 "crime": "crime",
                 "bal": "balance",
-                "adventure": "adventure"
+                "adventure": "adventure",
+                "blackjack": "blackjack"
             }
             self.last_ran = {}
             # discord.py-self's module sets global random to fixed seed. reset that, locally.
@@ -308,31 +323,24 @@ async def start_bot(token, channel_id):
                 await asyncio.sleep(wait_time)
                 await message.components[component].children[children].click()
             except (discord.errors.HTTPException, discord.errors.InvalidData) as e:
-                print("\n--- [DISCORD API ERROR] ---")
-                
-                # 1. Get the HTTP Status (e.g., 400, 401, 403, 429)
                 status = getattr(e, 'status', 'Unknown Status')
-                
-                # 2. Get the Discord Internal Error Code (e.g., 50035)
                 code = getattr(e, 'code', 'No Error Code')
-                
-                # 3. Get the raw text/message from the API
-                # Most dpy-self errors have a .text or .message attribute
                 error_msg = getattr(e, 'text', str(e))
-                
-                print(f"Status: {status}")
-                print(f"Discord Code: {code}")
-                print(f"Details: {error_msg}")
-                
-                # 4. Check for common self-bot failures
+
+                lines = [
+                    "--- [DISCORD API ERROR] ---",
+                    f"Status: {status}",
+                    f"Discord Code: {code}",
+                    f"Details: {error_msg}",
+                ]
                 if status == 429:
-                    print("CRITICAL: You are being rate limited. Increase your asyncio.sleep() times.")
+                    lines.append("CRITICAL: You are being rate limited. Increase your asyncio.sleep() times.")
                 elif status == 400:
-                    print("FAILED: Invalid Interaction. Likely the custom_id expired or the message is too old.")
+                    lines.append("FAILED: Invalid Interaction. Likely the custom_id expired or the message is too old.")
                 elif status == 403:
-                    print("FAILED: Forbidden. Check if the message is ephemeral or if you lack permissions.")
-                    
-                print("---------------------------\n")
+                    lines.append("FAILED: Forbidden. Check if the message is ephemeral or if you lack permissions.")
+                lines.append("---------------------------")
+                self.log("\n".join(lines), "red")
             finally:
                 if self.hold_command:
                     await self.set_command_hold_stat(False)
@@ -421,10 +429,13 @@ async def start_bot(token, channel_id):
             if parsed_msg.get("t") not in ["MESSAGE_CREATE", "MESSAGE_UPDATE"]:
                 return
 
-            # Hardcoded raw-gateway dump for debugging. Always written so we
-            # don't need to remember an env var.
+            # Raw-gateway dump for debugging/inspection. Daily-rotated:
+            # logs/raw-YYYY-MM-DD.log
             try:
-                with open("/tmp/opencode/raw_dump.log", "a", encoding="utf-8") as _f:
+                day = datetime.now().strftime("%Y-%m-%d")
+                with open(
+                    LOG_DIR / f"raw-{day}.log", "a", encoding="utf-8"
+                ) as _f:
                     _f.write(json.dumps(parsed_msg) + "\n")
             except OSError:
                 pass
@@ -455,7 +466,7 @@ async def start_bot(token, channel_id):
         client.log("Invalid channel", "red")
         await client.close()
     except Exception as e:
-        print(e)
+        logging.exception("Bot error: %s", e)
     finally:
         DASHBOARD_STATE.unregister_bot(client)
 
@@ -520,7 +531,7 @@ ____              _       __  __                              ____      _       
         try:
             future.result()
         except Exception as e:
-            print(f"Bot crashed:", e)
+            logging.exception("Bot crashed: %s", e)
 
     for item in tokens_and_channels:
         future = asyncio.run_coroutine_threadsafe(start_bot(item[0], item[1]), loop)
