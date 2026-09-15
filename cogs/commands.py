@@ -135,8 +135,22 @@ class Commands(commands.Cog):
     def _backoff(self, message):
         # Previous command still running, or a rate-limit/cooldown notice.
         replied = ""
-        if message.referenced_message is not None:
-            replied = message.referenced_message.content or ""
+        # Legacy dpy message: referenced_message. v2 dispatcher object:
+        # message.reference.resolved (SimpleNamespace, id + author only).
+        # Support both shapes.
+        ref_msg = getattr(message, "referenced_message", None)
+        if ref_msg is not None:
+            replied = ref_msg.content or ""
+        else:
+            ref = getattr(message, "reference", None)
+            resolved = getattr(ref, "resolved", None)
+            cmd_id = getattr(resolved, "id", None) if resolved is not None else None
+            if cmd_id is not None and getattr(self.bot, "channel", None) is not None:
+                try:
+                    cmd_msg = self.bot.channel.get_partial_message(cmd_id)
+                    replied = getattr(cmd_msg, "content", "") or ""
+                except (AttributeError, TypeError):
+                    replied = ""
         command = self._find_command(replied)
         if command is None:
             return
