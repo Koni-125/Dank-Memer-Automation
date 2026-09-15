@@ -70,8 +70,8 @@ class Tidy(commands.Cog):
             return
 
         prompt_found = False
-        if message.embeds and message.embeds[0].description:
-            if "Pick what to tidy up with." in message.embeds[0].description:
+        if message.embeds and (message.embeds[0].description or ""):
+            if "Pick what to tidy up with." in (message.embeds[0].description or ""):
                 prompt_found = True
         if not prompt_found:
             return
