@@ -36,53 +36,63 @@ class Work(commands.Cog):
             except (KeyError, IndexError, AttributeError):
                 return False
 
+        # Hold is released in the finally -- every return path above used
+        # to release manually, which leaked the hold on embed-parse errors.
         try:
-            await self.bot.send_cmd("work list")
-            message = await self.bot.wait_for("message", check=validate, timeout=20)
-        except asyncio.TimeoutError:
-            self.bot.log("work apply timed out waiting for job list", "red")
-            await self.bot.set_command_hold_stat(False)
-            return
-        if message is None:
-            await self.bot.set_command_hold_stat(False)
-            return
-
-        embed = message.embeds[0].to_dict()
-        pages = int(re.search(r"Page \d+ of (\d+)", embed["footer"]["text"]).group(1))
-        unlocked_jobs = []
-
-        for page in range(pages):
-            embed = message.embeds[0].to_dict()
-            pattern = r"(<:C[XY]:\d+>)\s+(?:\[\*\*|\*\*)(.*?)(?:\*\*\]|\*\*)"
-            matches = re.findall(pattern, embed["description"])
-            unlocked_jobs.extend(name for emoji, name in matches if "CY" in emoji)
-            locked_jobs = [name for emoji, name in matches if "CX" in emoji]
-
-            if unlocked_jobs and locked_jobs:
-                await self.bot.send_cmd(f"work apply {unlocked_jobs[-1]}")
-                await self.bot.set_command_hold_stat(False)
+            try:
+                await self.bot.send_cmd("work list")
+                message = await self.bot.wait_for("message", check=validate, timeout=20)
+            except asyncio.TimeoutError:
+                self.bot.log("work apply timed out waiting for job list", "red")
+                return
+            if message is None:
                 return
 
-            if page >= pages - 1:
-                break
-
             try:
-                await self.bot.click(message, 0, 2)
-            except Exception as e:
-                self.bot.log(f"work apply next-page click failed: {e}", "red")
-                break
-            try:
-                result = await self.bot.wait_for(
-                    "message_edit", check=validate_edit, timeout=20
+                embed = message.embeds[0].to_dict()
+                pages = int(
+                    re.search(r"Page \d+ of (\d+)", embed["footer"]["text"]).group(1)
                 )
-            except asyncio.TimeoutError:
-                self.bot.log("work apply timed out waiting for next page", "red")
-                break
-            if result is None:
-                break
-            message = result[1]
+            except (KeyError, AttributeError, TypeError, ValueError):
+                self.bot.log("work apply - could not parse job list", "red")
+                return
+            unlocked_jobs = []
 
-        await self.bot.set_command_hold_stat(False)
+            for page in range(pages):
+                try:
+                    embed = message.embeds[0].to_dict()
+                    pattern = r"(<:C[XY]:\d+>)\s+(?:\[\*\*|\*\*)(.*?)(?:\*\*\]|\*\*)"
+                    matches = re.findall(pattern, embed.get("description") or "")
+                except (KeyError, AttributeError, TypeError):
+                    break
+                unlocked_jobs.extend(name for emoji, name in matches if "CY" in emoji)
+                locked_jobs = [name for emoji, name in matches if "CX" in emoji]
+
+                if unlocked_jobs and locked_jobs:
+                    await self.bot.send_cmd(f"work apply {unlocked_jobs[-1]}")
+                    return
+
+                if page >= pages - 1:
+                    break
+
+                try:
+                    await self.bot.click(message, 0, 2)
+                except Exception as e:
+                    self.bot.log(f"work apply next-page click failed: {e}", "red")
+                    break
+                try:
+                    result = await self.bot.wait_for(
+                        "message_edit", check=validate_edit, timeout=20
+                    )
+                except asyncio.TimeoutError:
+                    self.bot.log("work apply timed out waiting for next page", "red")
+                    break
+                if result is None:
+                    break
+                message = result[1]
+        finally:
+            if self.bot.hold_command:
+                await self.bot.set_command_hold_stat(False)
 
     async def log_messages(self, message):
         if message.channel_id != self.bot.channel.id:
