@@ -10,7 +10,7 @@
             "delay": 30
         },
         "fish": {
-            "enabled": true,
+            "enabled": false,
             "sell": {
                 "enabled": true,
                 "asCash": false
@@ -36,11 +36,11 @@
             "delay": 40
         },
         "pet": {
-            "enabled": false,
+            "enabled": true,
             "delay": 1800
         },
         "scratch": {
-            "enabled": false,
+            "enabled": true,
             "delay": 10800
         },
         "hl": {
@@ -88,11 +88,11 @@
             "delay": 300
         },
         "dep_all": {
-            "enabled": false,
+            "enabled": true,
             "delay": 30
         },
         "stream": {
-            "enabled": false,
+            "enabled": true,
             "delay": 660,
             "order": [
                 1,
@@ -145,48 +145,50 @@
             ]
         },
         "adventure": {
-            "enabled": false,
+            "enabled": true,
             "delay": 1800,
             "adventure": "west"
         },
         "inventory": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "sell": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
         "buy": {
-            "enabled": true,
+            "enabled": false,
             "delay": 300
         },
         "cointoss": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
         "slots": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
         "snakeeyes": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
         "roulette": {
-            "enabled": true,
+            "enabled": false,
             "delay": 30
         },
         "blackjack": {
-            "enabled": true,
-            "delay": 60
+            "enabled": false,
+            "delay": 15,
+            "bet": 5000,
+            "card_counting": true
         },
         "use": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "item": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "help": {
@@ -194,94 +196,94 @@
             "delay": 60
         },
         "title": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "profile": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "multipliers": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "giveaway": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "craft": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "farm": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "quests": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "currencylog": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "notifications": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "lottery": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "settings": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "advancements": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "achievements": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "badges": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "collection": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "leaderboard": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "skins": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "play": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "market post": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "market view": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "market": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60,
             "post_item": "Cookie",
             "post_price": 25000,
             "post_days": 1
         },
         "pets": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "pets view": {
@@ -289,15 +291,15 @@
             "delay": 60
         },
         "pets care": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "pets rooms": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         },
         "use cheese": {
-            "enabled": true,
+            "enabled": false,
             "delay": 60
         }
     },
