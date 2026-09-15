@@ -5,6 +5,8 @@ import components_v2
 
 from discord.ext import commands
 
+DANK_MEMER_ID = 270904126974590976
+
 
 class Misc(commands.Cog):
     def __init__(self, bot):
@@ -12,6 +14,12 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self , message):
+        if self.bot.channel is None:
+            return
+        if getattr(getattr(message, "channel", None), "id", None) != self.bot.channel.id:
+            return
+        if getattr(getattr(message, "author", None), "id", None) != DANK_MEMER_ID:
+            return
         if message.embeds:
             title = message.embeds[0].title
             if title and "Hold Tight!" in title:
@@ -29,8 +37,11 @@ class Misc(commands.Cog):
                     await self.bot.set_command_hold_stat(False)
 
         if message.embeds:
-            title = message.embeds[0].title
-            if title and "Verification Required" in title:
+            title = message.embeds[0].title or ""
+            desc = message.embeds[0].description or ""
+            # Real title is "Captcha" (dankmemer.lol/captcha in desc);
+            # "Verification Required" never appears (raw-2026-09-15.log:2088).
+            if title.strip().lower() == "captcha" or "dankmemer.lol/captcha" in desc:
                 await self.bot.set_command_hold_stat(True)
                 self.bot.state = False
                 self.bot.log("Verification Detected: Paused", "red")
