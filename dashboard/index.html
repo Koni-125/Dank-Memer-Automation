@@ -3,240 +3,587 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dank Automation Dashboard</title>
+  <title>dank-automation</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23fff'/%3E%3Cpath d='M16 6l10 18H6z' fill='%23000'/%3E%3C/svg%3E">
   <style>
     :root {
-      --bg: #0d1118;
-      --card: #161b26;
-      --card-2: #1e2433;
-      --text: #e8edf7;
-      --muted: #9aa4b7;
-      --primary: #3ba3ff;
-      --good: #2ecc71;
-      --warn: #f1c40f;
-      --bad: #ff5f56;
-      --border: #2a3142;
+      /* Vercel Geist (dark): monochrome canvas + hairlines, one blue accent.
+         Page #000, surfaces #0A0A0A/#1A1A1A, borders #2E2E2E/#1F1F1F,
+         text #EDEDED, secondary #A1A1A1, accent #0070F3. */
+      --bg: #000000;
+      --panel: #0a0a0a;
+      --panel-2: #1a1a1a;
+      --line: #2e2e2e;
+      --line-soft: #1f1f1f;
+      --text: #ededed;
+      --muted: #a1a1a1;
+      --faint: #666666;
+      --accent: #0070f3;
+      --accent-hi: #52a8ff;
+      --green: #00ca50;
+      --red: #e5484d;
+      --amber: #ffb224;
+      --blue: #52a8ff;
+      --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: "Geist Sans", "Geist", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: radial-gradient(circle at top right, #1a2540 0%, var(--bg) 40%);
-      color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    html, body { height: 100%; overflow: hidden; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    .app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* sidebar */
+    aside {
+      width: 232px; flex: none; background: var(--panel);
+      border-right: 1px solid var(--line-soft);
+      display: flex; flex-direction: column; height: 100vh;
     }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
-    h1 { margin: 0; font-size: 22px; }
-    .sub { color: var(--muted); margin-top: 4px; font-size: 13px; }
-    .grid { display: grid; gap: 12px; grid-template-columns: repeat(12, 1fr); margin-top: 16px; }
-    .card {
-      background: linear-gradient(180deg, var(--card), var(--card-2));
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
+    .brand { display: flex; align-items: center; gap: 10px; padding: 18px 16px 14px; }
+    .mark {
+      width: 30px; height: 30px; border-radius: 6px; flex: none;
+      background: #fff; color: #000;
+      display: grid; place-items: center;
+      font-family: var(--sans); font-weight: 700; font-size: 15px;
     }
-    .stat { grid-column: span 3; }
-    .title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
-    .value { margin-top: 8px; font-size: 24px; font-weight: 700; }
-    .bots { grid-column: span 7; }
-    .logs { grid-column: span 5; }
-    .settings { grid-column: span 12; }
-    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; }
-    .ok { background: rgba(46, 204, 113, .14); color: var(--good); }
-    .hold { background: rgba(241, 196, 15, .14); color: var(--warn); }
-    .off { background: rgba(255, 95, 86, .14); color: var(--bad); }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
-    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-size: 12px; }
+    .brand h1 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: -0.01em; }
+    .brand small { display: block; color: var(--faint); font-weight: 500; font-size: 11.5px; font-family: var(--mono); }
+    nav { padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+    .nav-label { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); padding: 10px 10px 4px; }
+    .nav-item {
+      position: relative; display: flex; align-items: center; gap: 10px; width: 100%;
+      background: none; border: 0; color: var(--muted); text-align: left;
+      font-size: 13.5px; font-weight: 550; padding: 8px 10px; border-radius: 8px;
+      cursor: pointer; font-family: var(--sans);
+    }
+    .nav-item:hover { background: rgba(255,255,255,.03); color: var(--text); }
+    .nav-item.active { background: var(--panel-2); color: var(--text); }
+    .nav-item.active::before {
+      content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 2px;
+      background: #fff; border-radius: 2px;
+    }
+    .nav-item .mono-ic { font-family: var(--mono); font-size: 12px; color: var(--faint); width: 16px; text-align: center; }
+    .nav-item.active .mono-ic { color: var(--text); }
+    .nav-item .bdg {
+      margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted);
+      border: 1px solid var(--line); background: var(--bg);
+      border-radius: 6px; padding: 0 6px; white-space: nowrap;
+    }
+    .side-foot { padding: 12px; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 8px; }
+    .conn { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); padding: 2px 4px; font-variant-numeric: tabular-nums; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+    .dot.on { background: var(--green); box-shadow: 0 0 8px rgba(0,202,80,.55); }
+    .ver { color: var(--faint); font-size: 11.5px; font-family: var(--mono); padding: 0 4px; }
+
+    /* main scrolls internally so the whole layout fits the viewport */
+    main { flex: 1; min-width: 0; height: 100vh; overflow-y: auto; padding: 20px 22px 44px; }
+    main > .view { max-width: 1060px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .topbar h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+    .topbar h1 span { color: var(--faint); font-weight: 500; font-size: 13px; margin-left: 8px; }
+    .top-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* stat strip */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat { background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+    .stat .k { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+    .stat .v { margin-top: 5px; font-size: 20px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat .s { font-size: 12px; color: var(--muted); }
+
+    .panel { background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px; min-width: 0; overflow: hidden; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+    .panel-head h2 { margin: 0; font-size: 13px; font-weight: 650; }
+    .panel-head p { margin: 2px 0 0; font-size: 12px; color: var(--faint); }
+
+    .btn {
+      appearance: none; border: 1px solid var(--line); background: var(--panel-2);
+      color: var(--text); border-radius: 6px; padding: 7px 12px;
+      font-size: 12.5px; font-weight: 550; cursor: pointer; white-space: nowrap;
+    }
+    .btn:hover { background: #292929; }
+    .btn.primary { background: #fff; border-color: #fff; color: #000; }
+    .btn.primary:hover { background: #e2e2e2; }
+    .btn.quiet { background: transparent; color: var(--muted); }
+
+    /* log level tabs */
+    .levels { display: flex; gap: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 12px; }
+    .levels button {
+      background: none; border: 0; color: var(--faint); font-size: 13px; font-weight: 600;
+      padding: 9px 2px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+      font-family: var(--sans);
+    }
+    .levels button:hover { color: var(--text); }
+    .levels button.active { color: var(--text); border-bottom-color: #fff; }
+    .levels button .n { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-left: 5px; }
+
+    .logbar { display: flex; gap: 8px; align-items: center; }
+    .logbar input[type="search"] {
+      background: var(--bg); border: 1px solid var(--line); color: var(--text);
+      border-radius: 8px; padding: 6px 10px; font-size: 12.5px; width: 150px; outline: none;
+    }
+    .logbar input[type="search"]:focus { border-color: var(--accent); }
+    .logbar input[type="search"]::placeholder { color: var(--faint); }
+    .check { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+    .check input { accent-color: var(--accent); }
     #logs {
-      height: 320px;
-      overflow: auto;
-      background: #0b0f16;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
+      height: calc(100vh - 340px); min-height: 300px; overflow-y: auto; padding: 10px 14px;
+      font-family: var(--mono); font-size: 12.3px; line-height: 1.7;
+      background: #000; border: 1px solid var(--line-soft); border-radius: 8px;
     }
-    .log { margin: 0 0 6px 0; white-space: pre-wrap; }
-    .log.info { color: #86b7ff; }
-    .log.yellow, .log.warn { color: var(--warn); }
-    .log.green, .log.success { color: var(--good); }
-    .log.red, .log.error { color: var(--bad); }
-    button {
-      border: 1px solid #2f5589;
-      background: #11345f;
-      color: #cfe7ff;
-      border-radius: 8px;
-      padding: 8px 12px;
-      cursor: pointer;
+    #logs::-webkit-scrollbar { width: 10px; }
+    #logs::-webkit-scrollbar-thumb { background: #292929; border-radius: 8px; border: 3px solid #000; }
+    .log { margin: 0; padding: 1px 0; color: var(--muted); word-break: break-word; white-space: pre-wrap; }
+    .log .t { color: var(--faint); margin-right: 8px; }
+    .log .lv { display: inline-block; width: 46px; font-weight: 700; margin-right: 8px; }
+    .log.info .lv { color: var(--blue); }
+    .log.green .lv, .log.success .lv { color: var(--green); }
+    .log.yellow .lv, .log.warn .lv { color: var(--amber); }
+    .log.red .lv, .log.error .lv { color: var(--red); }
+    .log.blue .lv { color: var(--blue); }
+
+    /* command groups */
+    .grp { margin-bottom: 18px; }
+    .grp-head { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 8px; }
+    .grp-head h2 { margin: 0; font-size: 13px; font-weight: 700; }
+    .grp-head .cnt { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+    .grp-head p { margin: 0 0 0 auto; font-size: 12px; color: var(--faint); text-align: right; }
+    .cmd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+    .cmd { background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+    .cmd-top { display: flex; align-items: center; gap: 10px; }
+    .cmd-top h3 { margin: 0; font-size: 13.5px; font-weight: 650; text-transform: capitalize; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cmd-top .st { color: var(--faint); font-size: 12px; flex: none; }
+    .cmd-top .st.on { color: var(--green); }
+    .tgl { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; flex: none; }
+    .tgl input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+    .frow { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+    .frow > label { width: 104px; flex: none; color: var(--faint); font-size: 12px; }
+    .frow input[type="number"], .frow input[type="text"] {
+      background: var(--bg); border: 1px solid var(--line); color: var(--text);
+      border-radius: 8px; padding: 6px 10px; font-size: 12.5px; width: 100%; min-width: 0; outline: none;
     }
+    .frow input:focus { border-color: var(--accent); }
+    .frow .chk { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+    .frow .chk input { width: 15px; height: 15px; accent-color: var(--accent); }
+    .cmd-search {
+      background: var(--bg); border: 1px solid var(--line); color: var(--text);
+      border-radius: 8px; padding: 7px 11px; font-size: 12.5px; width: 170px; outline: none;
+    }
+    .cmd-search:focus { border-color: var(--accent); }
+    .cmd-search::placeholder { color: var(--faint); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); padding: 10px 12px 6px; }
+    td { padding: 10px 12px; border-top: 1px solid var(--line-soft); vertical-align: middle; }
+    tbody tr:hover td { background: rgba(255,255,255,.015); }
+    td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    .tbl-scroll { overflow-x: auto; }
+    .mono { font-family: var(--mono); font-size: 12.5px; }
+    .dim { color: var(--muted); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+      border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); white-space: nowrap;
+    }
+    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge.green { color: var(--green); border-color: rgba(0,202,80,.3); }
+    .badge.red { color: var(--red); border-color: rgba(229,72,77,.3); }
+    .badge.grey { color: var(--muted); }
+    .empty { padding: 22px 16px; color: var(--faint); font-size: 13px; }
+
     textarea {
-      width: 100%;
-      min-height: 280px;
-      margin-top: 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #0b0f16;
-      color: var(--text);
-      padding: 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
+      display: block; width: 100%; height: calc(100vh - 250px); min-height: 300px; resize: none;
+      background: #000; border: 1px solid var(--line-soft); border-radius: 8px;
+      color: var(--text); padding: 14px 16px; outline: none;
+      font-family: var(--mono); font-size: 12.3px; line-height: 1.65;
     }
+    textarea:focus { border-color: var(--accent); }
+    .hint { color: var(--faint); font-size: 12.5px; margin-bottom: 12px; }
+    footer { margin-top: 18px; display: flex; justify-content: space-between; gap: 10px; color: var(--faint); font-size: 12px; }
+    footer .mono { font-size: 11.5px; }
+
+    #toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
+      background: #161d2a; border: 1px solid var(--line); color: var(--text);
+      padding: 9px 15px; border-radius: 10px; font-size: 13px; font-weight: 550;
+      opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.bad { border-color: rgba(255,107,107,.5); }
+
     @media (max-width: 900px) {
-      .stat { grid-column: span 6; }
-      .bots, .logs, .settings { grid-column: span 12; }
+      aside { width: 62px; }
+      .brand { justify-content: center; padding: 14px 0 10px; }
+      .brand h1, .nav-label, .nav-item span.lbl, .nav-item .bdg, .side-foot .ver, .side-foot .conn span.txt { display: none; }
+      .nav-item { justify-content: center; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      main { padding: 16px 14px 40px; }
+      .cmd-list { grid-template-columns: 1fr; }
+      .topbar h1 span { display: block; margin: 2px 0 0; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Dank Automation Dashboard</h1>
-    <div class="sub">Local dashboard • http://127.0.0.1:3000</div>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <div class="mark">▲</div>
+      <h1>dank-automation<small>local · 127.0.0.1:3000</small></h1>
+    </div>
+    <nav>
+      <div class="nav-label">Monitor</div>
+      <button class="nav-item active" id="navLogs" onclick="showPage('logs')"><span class="mono-ic">≡</span><span class="lbl">Logs</span></button>
+      <button class="nav-item" id="navAccounts" onclick="showPage('accounts')"><span class="mono-ic">○</span><span class="lbl">Accounts</span></button>
+      <div class="nav-label">Configure</div>
+      <button class="nav-item" id="navCommands" onclick="showPage('commands')"><span class="mono-ic">/</span><span class="lbl">Commands</span><span class="bdg" id="cmdBdg"></span></button>
+      <button class="nav-item" id="navSettings" onclick="showPage('settings')"><span class="mono-ic">∗</span><span class="lbl">Settings</span></button>
+    </nav>
+    <div class="side-foot">
+      <div class="conn"><span class="dot" id="runState"></span><span class="txt" id="runStateText">connecting…</span></div>
+      <div class="ver">v1.5.2</div>
+    </div>
+  </aside>
 
-    <div class="grid">
-      <div class="card stat">
-        <div class="title">Uptime</div>
-        <div class="value" id="uptime">-</div>
-      </div>
-      <div class="card stat">
-        <div class="title">Bots</div>
-        <div class="value" id="botsCount">-</div>
-      </div>
-      <div class="card stat">
-        <div class="title">Commands Sent</div>
-        <div class="value" id="cmdCount">-</div>
-      </div>
-      <div class="card stat">
-        <div class="title">Net Worth (Sum)</div>
-        <div class="value" id="netWorth">-</div>
-      </div>
-
-      <div class="card bots">
-        <div class="row">
-          <strong>Bot Status</strong>
-          <button onclick="loadOverview()">Refresh</button>
+  <main>
+    <!-- LOGS -->
+    <div class="view active" id="viewLogs">
+      <div class="topbar">
+        <h1>Logs <span>newest at the bottom · 3s refresh</span></h1>
+        <div class="logbar">
+          <input type="search" id="logFilter" placeholder="Filter" oninput="renderLogs()">
+          <label class="check"><input type="checkbox" id="autoScroll" checked> Follow</label>
         </div>
+      </div>
+      <section class="stats">
+        <div class="stat"><div class="k">Uptime</div><div class="v" id="uptime">–</div><div class="s">hh:mm:ss</div></div>
+        <div class="stat"><div class="k">Bots</div><div class="v" id="botsCount">–</div><div class="s" id="botsSub">–</div></div>
+        <div class="stat"><div class="k">Commands sent</div><div class="v" id="cmdCount">–</div><div class="s">this session</div></div>
+        <div class="stat"><div class="k">Net worth</div><div class="v" id="netWorth">–</div><div class="s">coins + inventory</div></div>
+      </section>
+      <div class="levels">
+        <button id="segImportant" class="active" onclick="setSeg('important')">Important<span class="n" id="nImportant"></span></button>
+        <button id="segOthers" onclick="setSeg('others')">Others<span class="n" id="nOthers"></span></button>
+        <button id="segDiscord" onclick="setSeg('discord')">Discord<span class="n" id="nDiscord"></span></button>
+      </div>
+      <div id="logs"></div>
+      <footer><span>dank memer self-bot</span><span class="mono" id="logCount"></span></footer>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div class="view" id="viewAccounts">
+      <div class="topbar">
+        <h1>Accounts <span id="botsMeta">no data yet</span></h1>
+        <div class="top-actions"><button class="btn" onclick="loadOverview()">Refresh</button></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Connected clients</h2><p>from /api/overview</p></div>
+        <div class="tbl-scroll">
         <table>
-          <thead>
-            <tr><th>Channel</th><th>State</th><th>Hold</th><th>Last Cmd</th><th>Coins</th><th>Inventory</th><th>Net</th></tr>
-          </thead>
-          <tbody id="botsTable"></tbody>
+          <thead><tr><th>Channel</th><th>Status</th><th>Hold</th><th>Last command</th><th class="n">Coins</th><th class="n">Inventory</th><th class="n">Net</th></tr></thead>
+          <tbody id="acctBody"></tbody>
         </table>
-      </div>
-
-      <div class="card logs">
-        <div class="row">
-          <strong>Live Logs</strong>
-          <button onclick="loadLogs()">Reload</button>
         </div>
-        <div id="logs"></div>
-      </div>
-
-      <div class="card settings">
-        <div class="row">
-          <strong>settings.json</strong>
-          <div>
-            <button onclick="saveSettings()">Save</button>
-            <button onclick="reloadSettings()">Apply To Running Bots</button>
-          </div>
-        </div>
-        <textarea id="settingsEditor"></textarea>
       </div>
     </div>
-  </div>
 
-  <script>
-    function fmt(n) {
-      const x = Number(n || 0);
-      return Number.isFinite(x) ? x.toLocaleString() : "0";
+    <!-- COMMANDS -->
+    <div class="view" id="viewCommands">
+      <div class="topbar">
+        <h1>Commands <span id="enabledCount">–</span></h1>
+        <div class="top-actions">
+          <input class="cmd-search" id="cmdFilter" type="search" placeholder="Filter commands" oninput="renderCommands()">
+          <button class="btn quiet" onclick="enableAll(true)">Enable all</button>
+          <button class="btn quiet" onclick="enableAll(false)">Disable all</button>
+          <button class="btn primary" onclick="saveSettings()">Save</button>
+          <button class="btn" onclick="reloadSettings()">Apply</button>
+        </div>
+      </div>
+      <div class="hint">Rotation runs in the normal loop · Onboarding-only runs only while the Onboarding cog has a pending objective · edits stage locally until Save.</div>
+      <div id="cmdGroups"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="view" id="viewSettings">
+      <div class="topbar">
+        <h1>Settings <span>settings.json</span></h1>
+        <div class="top-actions">
+          <button class="btn quiet" onclick="loadSettings(true)">Reload from file</button>
+          <button class="btn primary" onclick="saveSettings()">Save</button>
+          <button class="btn" onclick="reloadSettings()">Apply to bots</button>
+        </div>
+      </div>
+      <div class="hint">Save writes the file · Apply pushes it to running bots without restart.</div>
+      <textarea id="settingsEditor" spellcheck="false"></textarea>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+  let lastLogs = [], settingsData = null, cmdGroups = null, overviewCache = null;
+  let seg = "important";
+  let page = (location.hash || "").replace("#", "") || "logs";
+  const $ = id => document.getElementById(id);
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function fmt(n) { const x = Number(n || 0); return Number.isFinite(x) ? x.toLocaleString("en-US") : "0"; }
+  function hms(s) {
+    s = Math.max(0, Math.floor(Number(s || 0)));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const p = n => String(n).padStart(2, "0");
+    return h > 0 ? `${h}:${p(m)}:${p(sec)}` : `${m}:${p(sec)}`;
+  }
+  function toast(msg, bad) {
+    const el = $("toast"); el.textContent = msg;
+    el.classList.toggle("bad", !!bad); el.classList.add("show");
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+  function showPage(name) {
+    page = name;
+    for (const p of ["logs", "commands", "accounts", "settings"]) {
+      $("view" + p[0].toUpperCase() + p.slice(1)).classList.toggle("active", p === name);
+      $("nav" + p[0].toUpperCase() + p.slice(1)).classList.toggle("active", p === name);
     }
+    history.replaceState(null, "", name === "logs" ? "#" : "#" + name);
+    // Never clobber unsaved edits when switching tabs: only fetch on first open.
+    if (name === "settings") ensureSettings().then(syncEditor);
+    if (name === "commands") ensureSettings().then(() => ensureGroups()).then(renderCommands);
+    if (name === "accounts" && overviewCache) paintAccounts(overviewCache);
+  }
+  function setSeg(name) {
+    seg = name;
+    for (const s of ["important", "others", "discord"])
+      $("seg" + s[0].toUpperCase() + s.slice(1)).classList.toggle("active", s === name);
+    renderLogs();
+  }
 
-    function secToHms(s) {
-      const h = Math.floor(s / 3600);
-      const m = Math.floor((s % 3600) / 60);
-      const sec = s % 60;
-      return `${h}h ${m}m ${sec}s`;
+  function logBucket(l) {
+    const msg = String(l.message || "");
+    if (/discord|gateway|aiohttp|voice|pynacl|davey/i.test(msg)) return "discord";
+    if (String(l.level || "info").toLowerCase() !== "info") return "important";
+    return "others";
+  }
+  function renderLogs() {
+    if (page !== "logs") return;
+    const q = ($("logFilter").value || "").toLowerCase();
+    const counts = { important: 0, others: 0, discord: 0 };
+    for (const l of (lastLogs || [])) counts[logBucket(l)]++;
+    $("nImportant").textContent = counts.important || "";
+    $("nOthers").textContent = counts.others || "";
+    $("nDiscord").textContent = counts.discord || "";
+    const rows = (lastLogs || []).filter(l =>
+      logBucket(l) === seg &&
+      (!q || String(l.message || "").toLowerCase().includes(q) || String(l.level || "").toLowerCase().includes(q))
+    );
+    $("logs").innerHTML = rows.map(l => {
+      const lv = esc(l.level || "info");
+      return `<p class="log ${lv}"><span class="t">${esc(l.ts)}</span><span class="lv">${lv.slice(0, 5)}</span>${esc(l.message)}</p>`;
+    }).join("") || `<p class="log"><span class="t">–</span>no lines in this view</p>`;
+    $("logCount").textContent = rows.length + " shown";
+    if ($("autoScroll").checked) $("logs").scrollTop = $("logs").scrollHeight;
+  }
+  async function loadLogs() {
+    try {
+      lastLogs = (await (await fetch("/api/logs?limit=500")).json()).logs || [];
+      renderLogs();
+    } catch (e) { /* keep previous */ }
+  }
+
+  function paintStats(data) {
+    const bots = data.bots || [];
+    const online = bots.filter(b => b.state).length;
+    $("uptime").textContent = hms(data.uptime_s || 0);
+    $("botsCount").textContent = String(bots.length);
+    $("botsSub").textContent = bots.length ? `${online} online` : "none connected";
+    $("cmdCount").textContent = fmt(data.total_commands);
+    $("runState").className = "dot" + (online > 0 ? " on" : "");
+    $("runStateText").textContent = online > 0 ? `${online} online` : "offline";
+    let netSum = 0;
+    for (const b of bots) {
+      const net = Number(b.worth?.net || 0);
+      if (Number.isFinite(net)) netSum += net;
     }
+    $("netWorth").textContent = "⏣ " + fmt(netSum);
+    $("botsMeta").textContent = bots.length ? `${online} of ${bots.length} online` : "no data yet";
+  }
+  function paintAccounts(data) {
+    const bots = data.bots || [];
+    $("acctBody").innerHTML = bots.map(b => `<tr>
+        <td class="mono">${esc(b.channel_id ?? "–")}</td>
+        <td>${b.state ? '<span class="badge green">online</span>' : '<span class="badge red">offline</span>'}</td>
+        <td>${b.hold_command ? '<span class="badge grey">hold</span>' : '<span class="badge grey">free</span>'}</td>
+        <td class="mono dim">${esc(b.last_command || "–")}</td>
+        <td class="n mono">⏣ ${fmt(b.worth?.coins)}</td>
+        <td class="n mono">${fmt(b.worth?.inventory)}</td>
+        <td class="n mono">⏣ ${fmt(b.worth?.net)}</td>
+      </tr>`).join("") || `<tr><td colspan="7"><div class="empty">No bots connected. Start main.py to register.</div></td></tr>`;
+  }
+  async function loadOverview() {
+    let data;
+    try { data = await (await fetch("/api/overview")).json(); }
+    catch (e) { return; }
+    overviewCache = data;
+    paintStats(data);
+    if (page === "accounts") paintAccounts(data);
+  }
 
-    async function loadOverview() {
-      const res = await fetch("/api/overview");
-      const data = await res.json();
-      document.getElementById("uptime").textContent = secToHms(data.uptime_s || 0);
-      document.getElementById("botsCount").textContent = data.bots.length;
-      document.getElementById("cmdCount").textContent = fmt(data.total_commands);
-
-      let netSum = 0;
-      const rows = data.bots.map(b => {
-        const net = Number(b.worth?.net || 0);
-        netSum += Number.isFinite(net) ? net : 0;
-        const statePill = b.state ? '<span class="pill ok">online</span>' : '<span class="pill off">offline</span>';
-        const holdPill = b.hold_command ? '<span class="pill hold">hold</span>' : '<span class="pill ok">free</span>';
-        return `<tr>
-          <td>${b.channel_id ?? "-"}</td>
-          <td>${statePill}</td>
-          <td>${holdPill}</td>
-          <td>${b.last_command || "-"}</td>
-          <td>${fmt(b.worth?.coins)}</td>
-          <td>${fmt(b.worth?.inventory)}</td>
-          <td>${fmt(b.worth?.net)}</td>
-        </tr>`;
-      }).join("");
-
-      document.getElementById("botsTable").innerHTML = rows || '<tr><td colspan="7">No bots</td></tr>';
-      document.getElementById("netWorth").textContent = fmt(netSum);
+  // Full settings.json (source of truth for Save). Fetched once; tab
+  // switches never refetch so unsaved edits are not clobbered.
+  async function ensureSettings() {
+    if (settingsData) return settingsData;
+    return loadSettings(false);
+  }
+  async function loadSettings(force) {
+    if (settingsData && !force) { syncEditor(); refreshCounts(); return settingsData; }
+    try {
+      settingsData = await (await fetch("/api/settings")).json();
+      syncEditor();
+      refreshCounts();
+      if (page === "commands") renderCommands();
+    } catch (e) { toast("Could not load settings", true); }
+    return settingsData;
+  }
+  function syncEditor() {
+    if (settingsData) $("settingsEditor").value = JSON.stringify(settingsData, null, 2);
+  }
+  async function ensureGroups() {
+    if (cmdGroups) return cmdGroups;
+    try {
+      cmdGroups = (await (await fetch("/api/commands")).json()).groups || null;
+    } catch (e) { cmdGroups = null; }
+    if (!cmdGroups) {
+      // Fallback mirrors utils/dashboard_server.py ROTATION_COMMANDS.
+      const rotation = ["trivia","dig","fish","hunt","pm","beg","pet","scratch","hl","search","tidy","dep_all","stream","work","daily","crime","bal","adventure","blackjack"];
+      const cmds = (settingsData && settingsData.commands) || {};
+      cmdGroups = {
+        rotation: rotation.filter(k => k in cmds),
+        onboarding_only: Object.keys(cmds).filter(k => !rotation.includes(k)),
+        other: [],
+      };
     }
+    return cmdGroups;
+  }
 
-    async function loadLogs() {
-      const res = await fetch("/api/logs?limit=250");
-      const data = await res.json();
-      const html = (data.logs || []).map(l =>
-        `<p class="log ${l.level}">[${l.ts}] ${l.message}</p>`
-      ).join("");
-      const el = document.getElementById("logs");
-      el.innerHTML = html;
-      el.scrollTop = el.scrollHeight;
+  function cmdCard(name, c) {
+    const en = !!(c && c.enabled);
+    let extra = "";
+    if (name === "blackjack") {
+      extra = `<div class="frow"><label>Bet</label><input type="number" step="100" value="${esc(c.bet ?? 5000)}" onchange="setField('${esc(name)}','bet',Number(this.value))"></div>
+      <div class="frow"><label>Counting</label><label class="chk"><input type="checkbox" ${c.card_counting ? "checked" : ""} onchange="setField('${esc(name)}','card_counting',this.checked)"> Hi-Lo + bet ramp</label></div>`;
+    } else if (name === "fish") {
+      extra = `<div class="frow"><label>Sell</label><label class="chk"><input type="checkbox" ${c.sell && c.sell.enabled ? "checked" : ""} onchange="setNested('${esc(name)}','sell','enabled',this.checked)"> auto-sell catch</label></div>`;
+    } else if (c && ("priority" in c || "second_priority" in c || "avoid" in c)) {
+      extra = `<div class="frow"><label>Priority</label><input type="text" value="${esc((c.priority || []).join(", "))}" onchange="setList('${esc(name)}','priority',this.value)"></div>`;
+    } else if (name === "stream") {
+      extra = `<div class="frow"><label>Order</label><input type="text" value="${esc((c.order || []).join(", "))}" onchange="setNumList('${esc(name)}','order',this.value)"></div>`;
     }
-
-    async function loadSettings() {
-      const res = await fetch("/api/settings");
-      const data = await res.json();
-      document.getElementById("settingsEditor").value = JSON.stringify(data, null, 2);
+    return `<div class="cmd" data-name="${esc(name)}">
+      <div class="cmd-top"><h3 title="${esc(name)}">${esc(name)}</h3><span class="st${en ? " on" : ""}">${en ? "on" : "off"}</span>
+      <label class="tgl"><input type="checkbox" ${en ? "checked" : ""} onchange="setEnabled('${esc(name)}',this.checked,this)">toggle</label></div>
+      <div class="frow"><label>Delay (s)</label><input type="number" value="${esc(c.delay ?? 60)}" onchange="setField('${esc(name)}','delay',Number(this.value))"></div>
+      ${extra}
+    </div>`;
+  }
+  function renderCommands() {
+    if (!settingsData || page !== "commands") return;
+    const cmds = settingsData.commands || {};
+    const q = (($("cmdFilter") && $("cmdFilter").value) || "").toLowerCase();
+    const match = n => !q || n.toLowerCase().includes(q);
+    const groups = cmdGroups || { rotation: Object.keys(cmds), onboarding_only: [], other: [] };
+    const sections = [
+      ["rotation", "Rotation", (groups.rotation || []).filter(k => k in cmds), "normal loop · main.py commands_dict"],
+      ["onboarding_only", "Onboarding only", (groups.onboarding_only || []).filter(k => k in cmds), "Onboarding cog · only while an objective is pending"],
+    ];
+    const other = (groups.other || []).filter(k => k in cmds);
+    if (other.length) sections.push(["other", "Other", other, "in settings.json, not in either loop"]);
+    $("cmdGroups").innerHTML = sections.map(([key, title, names, sub]) => {
+      const shown = names.filter(match);
+      if (!names.length) return "";
+      return `<section class="grp"><div class="grp-head"><h2>${title}</h2><span class="cnt">${shown.length}/${names.length}</span><p>${sub}</p></div>
+        <div class="cmd-list">${shown.map(n => cmdCard(n, cmds[n] || {})).join("") || `<div class="empty">No match for “${esc(q)}”.</div>`}</div></section>`;
+    }).join("");
+    refreshCounts();
+  }
+  function refreshCounts() {
+    if (!settingsData) return;
+    const cmds = settingsData.commands || {};
+    const keys = Object.keys(cmds);
+    const n = Object.values(cmds).filter(c => c && c.enabled).length;
+    $("cmdBdg").textContent = n ? n + " on" : "";
+    $("enabledCount").textContent = n + " of " + keys.length + " enabled";
+  }
+  // Field edits stage locally (no re-render, so focused inputs keep focus).
+  function stage() {
+    syncEditor();
+    refreshCounts();
+  }
+  function setField(name, field, value) {
+    if (!settingsData?.commands?.[name]) return;
+    settingsData.commands[name][field] = value;
+    stage();
+  }
+  function setNested(name, obj, field, value) {
+    if (!settingsData?.commands?.[name]) return;
+    settingsData.commands[name][obj] = settingsData.commands[name][obj] || {};
+    settingsData.commands[name][obj][field] = value;
+    stage();
+  }
+  function setList(name, field, csv) {
+    setField(name, field, csv.split(",").map(s => s.trim()).filter(Boolean));
+  }
+  function setNumList(name, field, csv) {
+    setField(name, field, csv.split(",").map(s => Number(s.trim())).filter(x => Number.isFinite(x)));
+  }
+  function setEnabled(name, on, el) {
+    if (!settingsData?.commands?.[name]) return;
+    settingsData.commands[name].enabled = on;
+    const card = el && el.closest ? el.closest(".cmd-top") : null;
+    const st = card && card.querySelector ? card.querySelector(".st") : null;
+    if (st) { st.textContent = on ? "on" : "off"; st.classList.toggle("on", on); }
+    stage();
+  }
+  function enableAll(on) {
+    if (!settingsData) return;
+    for (const c of Object.values(settingsData.commands || {})) if (c) c.enabled = on;
+    syncEditor();
+    renderCommands();
+  }
+  async function saveSettings() {
+    let parsed = settingsData;
+    const raw = $("settingsEditor").value;
+    if (raw.trim()) {
+      try { parsed = JSON.parse(raw); }
+      catch (e) { toast("Invalid JSON: " + e.message, true); return; }
     }
-
-    async function saveSettings() {
-      const raw = document.getElementById("settingsEditor").value;
-      let parsed;
-      try {
-        parsed = JSON.parse(raw);
-      } catch (e) {
-        alert("Invalid JSON");
-        return;
+    const res = await fetch("/api/settings", {
+      method: "PUT", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(parsed),
+    });
+    if (res.ok) { settingsData = parsed; syncEditor(); refreshCounts(); if (page === "commands") renderCommands(); toast("Settings saved"); }
+    else toast("Save failed", true);
+  }
+  async function reloadSettings() {
+    try {
+      const raw = $("settingsEditor").value;
+      if (raw.trim()) {
+        const parsed = JSON.parse(raw);
+        await fetch("/api/settings", { method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(parsed) });
+        settingsData = parsed;
       }
-      const res = await fetch("/api/settings", {
-        method: "PUT",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(parsed),
-      });
-      if (!res.ok) alert("Save failed");
-    }
+    } catch (e) { toast("Invalid JSON", true); return; }
+    const res = await fetch("/api/settings/reload", { method: "POST" });
+    if (!res.ok) { toast("Reload failed", true); return; }
+    toast(`Applied to ${(await res.json().catch(() => ({}))).reloaded_bots ?? "?"} bot(s)`);
+  }
 
-    async function reloadSettings() {
-      const res = await fetch("/api/settings/reload", { method: "POST" });
-      if (!res.ok) {
-        alert("Reload failed");
-        return;
-      }
-      await loadOverview();
-    }
-
-    async function tick() {
-      await Promise.all([loadOverview(), loadLogs()]);
-    }
-
-    loadSettings();
-    tick();
-    setInterval(tick, 3000);
-  </script>
+  async function tick() {
+    await Promise.all([loadOverview(), loadLogs()]);
+  }
+  if (!["logs", "commands", "accounts", "settings"].includes(page)) page = "logs";
+  showPage(page);
+  tick();
+  setInterval(tick, 3000);
+</script>
 </body>
 </html>
