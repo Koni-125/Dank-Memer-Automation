@@ -12,6 +12,9 @@ class Craft(commands.Cog):
         # Item to craft (from the current onboarding objective).
         self.target_item = "bean seed"
         self._selected = False
+        # Guard against CREATE immediately followed by UPDATE queueing two
+        # clicks on the same "Craft N" button.
+        self._craft_task = None
         self.bot.message_dispatcher.register(self.log_messages)
         self.bot.message_dispatcher.register(self.log_farm)
         self.bot.message_dispatcher.register(self.log_messages_edit, edit=True)
@@ -57,10 +60,14 @@ class Craft(commands.Cog):
             self._try_craft(message)
 
     def _try_craft(self, message):
-        # Click "Craft N" when the recipe is shown and craftable.
+        # Click "Craft N" when the recipe is shown and craftable. Guard
+        # against CREATE immediately followed by UPDATE queueing two
+        # clicks on the same button.
+        if self._craft_task is not None and not self._craft_task.done():
+            return
         for btn in message.buttons:
             if btn.label and re.match(r"^Craft \d+$", btn.label) and not btn.disabled:
-                asyncio.create_task(self._do_craft(btn))
+                self._craft_task = asyncio.create_task(self._do_craft(btn))
                 return
 
         # Otherwise just log the missing materials (no auto-buy).
