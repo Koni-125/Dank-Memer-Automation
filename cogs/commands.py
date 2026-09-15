@@ -170,14 +170,18 @@ class Commands(commands.Cog):
         return None
 
     async def cog_load(self):
-        print(f"starting..., approx min {self.sleep_time}")
+        self.bot.log(f"starting..., approx min {self.sleep_time}", "green")
         self.commands_handler.start()
 
     def get_cooldown(self, command_name):
-        # User may sometimes put cooldown below minimum cooldowns,
-        # Guard against that.
-        cd = self.bot.settings_dict["commands"][command_name]["delay"]
-        min_cd = commands_min_cd[command_name]
+        # User may put cooldown below minimum configured in settings;
+        # guard against unknown commands too (KeyError outside inner try
+        # in commands_handler trips the outer handler).
+        try:
+            cd = self.bot.settings_dict["commands"][command_name]["delay"]
+        except (KeyError, TypeError):
+            return 60
+        min_cd = commands_min_cd.get(command_name, 0)
         return cd if cd >= min_cd else min_cd
 
     def should_run(self, command_name):
