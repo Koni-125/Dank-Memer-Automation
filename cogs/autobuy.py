@@ -103,7 +103,7 @@ class AutoBuy(commands.Cog):
                     await self.bot.set_command_hold_stat(True)
                     await self.shop_buy('shovel', 1)
         except Exception as e:
-            print(f"Error in on_message: {e}")
+            self.bot.log(f"Error in on_message: {e}", "red")
 
 async def setup(bot):
     await bot.add_cog(AutoBuy(bot))

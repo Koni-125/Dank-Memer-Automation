@@ -1,5 +1,8 @@
 from curl_cffi.requests import AsyncSession
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 
 
 def generate_nonce() -> str:
@@ -184,8 +187,10 @@ class select_menu:
                 )
 
                 if resp.status_code != 204:
-                    print(
-                        f"Component selection failed ({resp.status_code}): {resp.text}"
+                    logger.warning(
+                        "Component selection failed (%s): %s",
+                        resp.status_code,
+                        resp.text,
                     )
                     return False
 
@@ -332,6 +337,7 @@ class accessory:
 
                     return True
         else:
-            print(
-                f"Code attempted to click on a button... but not a clickable button  -> {self.custom_id}"
+            logger.warning(
+                "Code attempted to click on a button... but not a clickable button  -> %s",
+                self.custom_id,
             )

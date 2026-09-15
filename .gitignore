@@ -102,6 +102,7 @@ Desktop.ini
 
 # Logs
 *.log
+logs/
 
 # dotenv
 .env

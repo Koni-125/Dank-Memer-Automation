@@ -706,9 +706,10 @@ class Onboarding(commands.Cog):
             await asyncio.sleep(5)
 
     async def cog_load(self):
-        print(
+        self.bot.log(
             f"Onboarding cog loaded (enabled={self.enabled()}), "
-            f"level={self.current_level}, approx min {self.sleep_time}"
+            f"level={self.current_level}, approx min {self.sleep_time}",
+            "green",
         )
         self.onboarding_handler.start()
 
