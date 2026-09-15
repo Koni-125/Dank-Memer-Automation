@@ -25,6 +25,7 @@ commands_min_cd = {
     "stream": 60*10,
     "pet": 60*30,
     "scratch": 60*60*3,
+    "blackjack": 15,
 }
 
 
@@ -231,6 +232,14 @@ class Commands(commands.Cog):
                         continue
                     if command == "fish":
                         await self.bot.send_cmd(f"{self.bot.commands_dict[command]} catch")
+                        continue
+                    if command == "blackjack":
+                        bj_cog = self.bot.get_cog("Blackjack")
+                        if bj_cog is not None:
+                            bet = bj_cog.current_bet()
+                        else:
+                            bet = self.bot.settings_dict["commands"]["blackjack"].get("bet", 5000)
+                        await self.bot.send_cmd(f"{self.bot.commands_dict[command]} {bet}")
                         continue
                     await self.bot.send_cmd(self.bot.commands_dict[command])
                 except Exception as e:
