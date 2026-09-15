@@ -217,23 +217,25 @@ class Minigames(commands.Cog):
                 ):
                     self.bot.log("Solving Color Match Minigame", "yellow")
                     await self.bot.set_command_hold_stat(True)
-                    self.bot.pause_commands_timestamp = time.time()
-                    options = {}
-                    for line in embed["description"].splitlines()[1:]:
-                        match_word = re.search("`(.+?)`", line)
-                        match_color = re.search(":([^:]+):", line)
-                        if match_word and match_color:
-                            options[match_word[1]] = match_color[1]
-                    await asyncio.sleep(6)
-                    embed = message.embeds[0].to_dict()
-                    word = re.search("`(.+?)`", embed["description"])[1]
-                    color = options[word]
-                    for count, button in enumerate(message.components[0].children):
-                        if button.label == color:
-                            await self.bot.click(message, 0, count)
-                    if self.bot.hold_command is True:
-                        await self.bot.set_command_hold_stat(False)
-                    self.bot.log("Solved Color Match Minigame", "green")
+                    try:
+                        self.bot.pause_commands_timestamp = time.time()
+                        options = {}
+                        for line in embed["description"].splitlines()[1:]:
+                            match_word = re.search("`(.+?)`", line)
+                            match_color = re.search(":([^:]+):", line)
+                            if match_word and match_color:
+                                options[match_word[1]] = match_color[1]
+                        await asyncio.sleep(6)
+                        embed = message.embeds[0].to_dict()
+                        word = re.search("`(.+?)`", embed["description"])[1]
+                        color = options[word]
+                        for count, button in enumerate(message.components[0].children):
+                            if button.label == color:
+                                await self.bot.click(message, 0, count)
+                        self.bot.log("Solved Color Match Minigame", "green")
+                    finally:
+                        if self.bot.hold_command is True:
+                            await self.bot.set_command_hold_stat(False)
                     return
 
             # Emoji
@@ -241,16 +243,18 @@ class Minigames(commands.Cog):
                 if "Look at the emoji closely!" in embed["description"]:
                     self.bot.log("Solving Emoji Minigame", "yellow")
                     await self.bot.set_command_hold_stat(True)
-                    self.bot.pause_commands_timestamp = time.time()
-                    emoji = str(embed["description"].splitlines()[1])
-                    await asyncio.sleep(4)
-                    for row, i in enumerate(message.components):
-                        for column, button in enumerate(i.children):
-                            if str(button.emoji) == emoji:
-                                await self.bot.click(message, row, column)
-                    if self.bot.hold_command is True:
-                        await self.bot.set_command_hold_stat(False)
-                    self.bot.log("Solved Emoji Minigame", "green")
+                    try:
+                        self.bot.pause_commands_timestamp = time.time()
+                        emoji = str(embed["description"].splitlines()[1])
+                        await asyncio.sleep(4)
+                        for row, i in enumerate(message.components):
+                            for column, button in enumerate(i.children):
+                                if str(button.emoji) == emoji:
+                                    await self.bot.click(message, row, column)
+                        self.bot.log("Solved Emoji Minigame", "green")
+                    finally:
+                        if self.bot.hold_command is True:
+                            await self.bot.set_command_hold_stat(False)
                     return
 
             # Repeat order
@@ -261,21 +265,23 @@ class Minigames(commands.Cog):
                 ):
                     self.bot.log("Solving Repeat Order Minigame", "yellow")
                     await self.bot.set_command_hold_stat(True)
-                    self.bot.pause_commands_timestamp = time.time()
-                    order = [
-                        line[1:-1]
-                        for line in message.embeds[0].description.splitlines()[1:6]
-                    ]
-                    await asyncio.sleep(6)
-                    answers = {
-                        button.label: i
-                        for i, button in enumerate(message.components[0].children)
-                    }
-                    for choice in order:
-                        await self.bot.click(message, 0, answers[choice])
-                    if self.bot.hold_command is True:
-                        await self.bot.set_command_hold_stat(False)
-                    self.bot.log("Solved Repeat Order Minigame", "green")
+                    try:
+                        self.bot.pause_commands_timestamp = time.time()
+                        order = [
+                            line[1:-1]
+                            for line in message.embeds[0].description.splitlines()[1:6]
+                        ]
+                        await asyncio.sleep(6)
+                        answers = {
+                            button.label: i
+                            for i, button in enumerate(message.components[0].children)
+                        }
+                        for choice in order:
+                            await self.bot.click(message, 0, answers[choice])
+                        self.bot.log("Solved Repeat Order Minigame", "green")
+                    finally:
+                        if self.bot.hold_command is True:
+                            await self.bot.set_command_hold_stat(False)
                     return
 
             # Attack boss
@@ -301,7 +307,7 @@ class Minigames(commands.Cog):
                     message.interaction and message.interaction.name != "highlow"
                 ):
                     num = int(
-                        re.search("\*\*(.*?)\*\*", embed["description"])[1].title()
+                        re.search(r"\*\*(.*?)\*\*", embed["description"])[1].title()
                     )
                     # Buttons are [Lower, JACKPOT, Higher]. A high hint makes
                     # "lower" more likely and vice versa.
