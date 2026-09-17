@@ -52,6 +52,13 @@ class Search(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         # Legacy embeds fallback (kept in case Dank Memer sends v1).
+        try:
+            if message.channel.id != self.bot.channel.id:
+                return
+        except AttributeError:
+            return
+        if getattr(getattr(message, "author", None), "id", None) != 270904126974590976:
+            return
         if message.embeds:
             desc = message.embeds[0].description or ""
             if "Where do you want to search?" in desc:
