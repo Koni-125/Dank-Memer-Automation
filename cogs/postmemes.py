@@ -2,14 +2,21 @@ import random
 import asyncio
 import time
 
+import components_v2
+
 from discord.ext import commands
 
 DANK_MEMER_ID = 270904126974590976
+
+# Flow nav buttons share the flow message with game choices; never pick these.
+_FLOW_NAV = ("continue", "skip", "stop", "end", "finish", "next", "run")
 
 
 class Pm(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.bot.message_dispatcher.register(self.log_v2_messages)
+        self.bot.message_dispatcher.register(self.log_v2_messages, edit=True)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -55,6 +62,33 @@ class Pm(commands.Cog):
         # Dead meme: can't post for ~2 minutes (+5s buffer).
         self.bot.log("can't pm for 2 min", "red")
         self.bot.last_ran["pm"] = time.time() + 125
+
+    async def log_v2_messages(self, message):
+        # Flow-mode prompt ("<name>'s Meme Posting Session" + platform
+        # buttons). Flow steps arrive as edits; the legacy listener only
+        # sees new messages, so this covers both.
+        if message.channel_id != self.bot.channel.id:
+            return
+        try:
+            texts = components_v2.message.text_display_contents(message)
+        except Exception:
+            return
+        if not any("Meme Posting Session" in t for t in texts):
+            return
+        clickable = [b for b in (message.buttons or []) if not b.disabled]
+        game = [
+            b
+            for b in clickable
+            if (getattr(b, "label", None) or "").lower() not in _FLOW_NAV
+        ]
+        if not game:
+            return
+        pick = self.bot.random.choice(game)
+        if await self.bot.click_button(pick):
+            self.bot.log(f"postmemes - clicked {pick.label}", "green")
+            self.bot.last_ran["pm"] = time.time()
+        else:
+            self.bot.log(f"postmemes click failed ({pick.label})", "red")
 
 
 
