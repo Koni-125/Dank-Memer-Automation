@@ -19,6 +19,22 @@ class Tidy(commands.Cog):
         else:
             self.priority = ["hand"]
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-derive cached tool.
+        try:
+            tidy_config = self.bot.settings_dict["commands"]["tidy"]
+            preferred_tool = tidy_config.get("tools", tidy_config.get("tool"))
+        except (KeyError, TypeError, AttributeError):
+            return
+        if isinstance(preferred_tool, str):
+            self.priority = [preferred_tool.lower()]
+        elif isinstance(preferred_tool, list):
+            self.priority = [
+                item.lower() for item in preferred_tool if isinstance(item, str)
+            ]
+        else:
+            self.priority = ["hand"]
+
     async def log_messages(self, message):
         if message.channel_id != self.bot.channel.id:
             return

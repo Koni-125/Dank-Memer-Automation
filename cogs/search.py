@@ -14,6 +14,16 @@ class Search(commands.Cog):
         self.avoid = search_config["avoid"]
         self.bot.message_dispatcher.register(self.log_messages)
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-point cached lists.
+        try:
+            cfg = self.bot.settings_dict["commands"]["search"]
+            self.priority = cfg["priority"]
+            self.second_priority = cfg["second_priority"]
+            self.avoid = cfg["avoid"]
+        except (KeyError, TypeError):
+            pass
+
     def _pick(self, buttons):
         shuffled = list(buttons)
         self.bot.random.shuffle(shuffled)

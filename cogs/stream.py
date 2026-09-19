@@ -40,6 +40,19 @@ class Stream(commands.Cog):
         self._cooldown_until = 0
         self.bot.message_dispatcher.register(self.log_messages)
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-read cached order.
+        try:
+            stream_config = self.bot.settings_dict["commands"].get("stream", {})
+            self.order = stream_config.get(
+                "order", [1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2]
+            )
+            self.onboarding_order = stream_config.get(
+                "onboarding_order", [0, 0, 0, 2, 2, 2]
+            )
+        except (AttributeError, TypeError):
+            pass
+
     def _onboarding_active(self):
         onboarding = self.bot.get_cog("Onboarding")
         return onboarding is not None and onboarding.enabled()

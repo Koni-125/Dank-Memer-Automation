@@ -28,6 +28,15 @@ class Trivia(commands.Cog):
             "trivia_correct_chance"
         ]
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-read cached chance.
+        try:
+            self.chance = self.bot.settings_dict["commands"]["trivia"][
+                "trivia_correct_chance"
+            ]
+        except (KeyError, TypeError):
+            pass
+
     @commands.Cog.listener()
     async def on_message(self, message):
         try:

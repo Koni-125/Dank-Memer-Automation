@@ -22,6 +22,15 @@ class Adventure(commands.Cog):
         self.bot = bot
         self.adventure = self.bot.settings_dict["commands"]["adventure"]["adventure"]
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-read cached choice.
+        try:
+            self.adventure = self.bot.settings_dict["commands"]["adventure"][
+                "adventure"
+            ]
+        except (KeyError, TypeError):
+            pass
+
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):

@@ -15,6 +15,16 @@ class Crime(commands.Cog):
         self.bot.message_dispatcher.register(self.log_messages)
         self.bot.message_dispatcher.register(self.log_messages_edit, edit=True)
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-point cached lists.
+        try:
+            cfg = self.bot.settings_dict["commands"]["crime"]
+            self.priority = cfg["priority"]
+            self.second_priority = cfg["second_priority"]
+            self.avoid = cfg["avoid"]
+        except (KeyError, TypeError):
+            pass
+
     def _pick(self, buttons):
         # buttons: list of clickable v2 accessory buttons.
         shuffled = list(buttons)

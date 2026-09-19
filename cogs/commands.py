@@ -87,6 +87,28 @@ class Commands(commands.Cog):
         self.next_break_at = time.time() + self.bot.random.uniform(self.min_break_cd, self.max_break_cd)
         self.bot.message_dispatcher.register(self.log_messages)
 
+    def refresh_settings(self):
+        # Re-read values cached at startup so dashboard Apply takes
+        # effect without a restart. Enabled/delay stay live through
+        # get_cooldown/should_run lookups.
+        try:
+            cooldowns = self.bot.settings_dict["settings"]["cooldowns"]
+        except (KeyError, TypeError, AttributeError):
+            return
+        try:
+            self.minCommandCD = cooldowns["minCommandDelay"]
+            self.maxCommandCD = cooldowns["maxCommandDelay"]
+        except (KeyError, TypeError):
+            pass
+        try:
+            self.breaks_enabled = self.bot.settings_dict["settings"].get("breaks", False)
+            self.min_break_cd = cooldowns.get("minBreakCooldown", 3600)
+            self.max_break_cd = cooldowns.get("maxBreakCooldown", 10800)
+            self.min_break_dur = cooldowns.get("minBreakDuration", 1800)
+            self.max_break_dur = cooldowns.get("maxBreakDuration", 18000)
+        except (AttributeError, TypeError):
+            pass
+
     def onboarding_mode(self):
         try:
             return bool(

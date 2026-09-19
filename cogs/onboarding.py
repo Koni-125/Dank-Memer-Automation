@@ -205,6 +205,18 @@ class Onboarding(commands.Cog):
         except (KeyError, TypeError):
             return False
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-read cached delays.
+        try:
+            self.minCommandCD = self.bot.settings_dict["settings"]["cooldowns"][
+                "minCommandDelay"
+            ]
+            self.maxCommandCD = self.bot.settings_dict["settings"]["cooldowns"][
+                "maxCommandDelay"
+            ]
+        except (KeyError, TypeError):
+            pass
+
     def _set_enabled(self, value):
         try:
             was_enabled = bool(

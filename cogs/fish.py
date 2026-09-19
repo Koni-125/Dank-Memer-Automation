@@ -43,6 +43,15 @@ class Fish(commands.Cog):
             "simpleFishing"
         ]
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-read cached flag.
+        try:
+            self.simple_fishing = self.bot.settings_dict["commands"]["fish"][
+                "simpleFishing"
+            ]
+        except (KeyError, TypeError):
+            pass
+
     async def log_messages(self, message):
         if message.channel_id != self.bot.channel.id:
             return
