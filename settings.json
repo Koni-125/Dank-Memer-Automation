@@ -324,7 +324,7 @@
             "enabled": false
         },
         "flow": {
-            "enabled": true,
+            "enabled": false,
             "flow_name": "Basic Grinding"
         },
         "slashCommands": false
