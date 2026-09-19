@@ -28,6 +28,7 @@ class Flow(commands.Cog):
         self.active = False
         self.last_flow_msg = 0
         self._skip_sightings = {}
+        self._structure_logged = False
         self.bot.message_dispatcher.register(self.log_messages)
         self.bot.message_dispatcher.register(self.log_messages_edit, edit=True)
 
@@ -154,8 +155,15 @@ class Flow(commands.Cog):
         except Exception:
             embeds = []
         joined = "\n".join(texts + embeds)
+        # Track ANY of Dank Memer's replies to our flow interaction (even
+        # errors like "That flow does not exist.") so the driver backs off
+        # instead of re-sending every 30s.
+        if "flow" in joined.lower():
+            self.last_flow_msg = time.time()
         buttons = self._flow_buttons(message)
         if not buttons:
+            if joined.strip():
+                self.bot.log(f"flow - reply: {joined.strip()[:150]}", "yellow")
             return
         self.last_flow_msg = time.time()
         labels = [(getattr(b, "label", None) or "?") for b in buttons]
@@ -256,6 +264,29 @@ class Flow(commands.Cog):
                 return
             if time.time() - self.last_flow_msg < 90:
                 return
+            if not self._structure_logged:
+                self._structure_logged = True
+                try:
+                    from discord import SlashCommand
+
+                    cmds = await self.bot.channel.application_commands()
+                    for c in cmds:
+                        if (
+                            getattr(getattr(c, "application", None), "id", None)
+                            != DANK_MEMER_ID
+                            or not isinstance(c, SlashCommand)
+                        ):
+                            continue
+                        if c.name.lower() == "flow":
+                            self.bot.log(
+                                "flow - cmd children: "
+                                + str([ch.name for ch in (c.children or [])])
+                                + " options: "
+                                + str([o.name for o in (c.options or [])]),
+                                "yellow",
+                            )
+                except Exception as e:
+                    self.bot.log(f"flow - structure probe failed: {e}", "red")
             self.bot.log("flow - requesting flow list", "green")
             await self.bot.send_slash(["flow", "list"])
         except Exception as e:
