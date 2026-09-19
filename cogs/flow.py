@@ -210,6 +210,30 @@ class Flow(commands.Cog):
                 self.active = True
             return
 
+        # 3b. Resume screen: Continue with no game pending while idle
+        # (e.g. re-attaching to a flow left active by a previous session).
+        if not self.active:
+            nav = _STEP_LABELS + _SKIP_LABELS + _STOP_LABELS
+            pending = [
+                b
+                for b in buttons
+                if not getattr(b, "disabled", False)
+                and not any(n in (getattr(b, "label", None) or "").lower() for n in nav)
+            ]
+            if pending:
+                self.bot.log(
+                    "flow - idle with game pending, waiting: "
+                    + str([(getattr(b, "label", None) or "?") for b in pending]),
+                    "yellow",
+                )
+                return
+            resume = self._find_label(buttons, _STEP_LABELS)
+            if resume is not None:
+                if await self.bot.click_button(resume):
+                    self.bot.log(f"flow - resumed '{self.flow_name()}'", "green")
+                    self.active = True
+                return
+
         # 4. Active flow step: advance to the next command. Game-choice
         # buttons (e.g. search locations) belong to the game cogs, which
         # run later in the same dispatch pass -- if any non-navigation
