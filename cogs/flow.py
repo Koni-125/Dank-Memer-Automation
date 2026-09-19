@@ -300,6 +300,11 @@ class Flow(commands.Cog):
             return
         if not self._is_ours(message):
             return
+        # Resting: fully deaf. Ignored screens must not refresh
+        # last_flow_msg, or the driver's 90s silence gate delays the
+        # post-break /flow re-request.
+        if self._breaking:
+            return
         texts = components_v2.message.text_display_contents(message) or []
         try:
             embeds = [
@@ -358,10 +363,6 @@ class Flow(commands.Cog):
                 )
             return
         if not self.enabled():
-            return
-        # Resting: ignore all flow screens so the list screen can't
-        # re-open the flow via View mid-break.
-        if self._breaking:
             return
 
         # Stopping for a break: freeze everything except the Stop click
@@ -527,6 +528,10 @@ class Flow(commands.Cog):
                 if time.time() >= self._break_until:
                     self._breaking = False
                     self.bot.log("flow - break over, resuming", "green")
+                    # Force the /flow re-request on the next tick: screens
+                    # seen during the break were ignored, so last_flow_msg
+                    # would otherwise hold off the 90s silence gate.
+                    self.last_flow_msg = 0
                     self.next_break_at = time.time() + random.uniform(
                         self._cd("minBreakCooldown", 3600),
                         self._cd("maxBreakCooldown", 10800),
