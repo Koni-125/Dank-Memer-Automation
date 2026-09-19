@@ -90,6 +90,18 @@ class Work(commands.Cog):
                 if result is None:
                     break
                 message = result[1]
+
+            if unlocked_jobs:
+                # No locked job was seen (e.g. every listed job is already
+                # unlocked): still apply the best unlocked job instead of
+                # exiting without applying.
+                self.bot.log(
+                    f"work apply - no locked jobs seen, applying {unlocked_jobs[-1]}",
+                    "green",
+                )
+                await self.bot.send_cmd(f"work apply {unlocked_jobs[-1]}")
+                return
+            self.bot.log("work apply - no unlocked jobs found", "yellow")
         finally:
             if self.bot.hold_command:
                 await self.bot.set_command_hold_stat(False)
