@@ -1,3 +1,5 @@
+import random
+import re
 import time
 
 import components_v2
@@ -12,6 +14,14 @@ DANK_MEMER_ID = 270904126974590976
 _STEP_LABELS = ("next", "run", "continue", "next command", "run command")
 _STOP_LABELS = ("stop", "end flow", "end", "finish")
 _SKIP_LABELS = ("skip",)
+
+# Displayed step names in the progress header ("**search** -> dig ...")
+# mapped to rotation keys for last_ran tracking.
+_STEP_TO_KEY = {"postmemes": "pm", "highlow": "hl"}
+
+# Rate-limit/cooldown notices: pause Continue clicks for _BACKOFF_S.
+_BACKOFF_S = 30
+_BACKOFF_TEXTS = ("already have a command in progress", "Too spicy", "Hold Tight")
 
 
 class Flow(commands.Cog):
@@ -29,8 +39,30 @@ class Flow(commands.Cog):
         self.last_flow_msg = 0
         self._skip_sightings = {}
         self._structure_logged = False
+        # Breaks mirror the rotation loop's schedule so flow mode rests
+        # the same way. _want_stop ends the flow first (Stop button);
+        # _breaking holds the driver until _break_until.
+        self._want_stop = False
+        self._breaking = False
+        self._break_until = 0
+        self._backoff_until = 0
+        self.next_break_at = time.time() + random.uniform(
+            self._cd("minBreakCooldown", 3600), self._cd("maxBreakCooldown", 10800)
+        )
         self.bot.message_dispatcher.register(self.log_messages)
         self.bot.message_dispatcher.register(self.log_messages_edit, edit=True)
+
+    def _cd(self, key, default):
+        try:
+            return self.bot.settings_dict["settings"]["cooldowns"].get(key, default)
+        except (KeyError, TypeError, AttributeError):
+            return default
+
+    def _breaks_enabled(self):
+        try:
+            return bool(self.bot.settings_dict["settings"].get("breaks", False))
+        except (AttributeError, TypeError):
+            return False
 
     def _cfg(self):
         try:
@@ -136,6 +168,41 @@ class Flow(commands.Cog):
                     return btn
         return None
 
+    def _track_step_cooldown(self, joined):
+        # Reference only (flow never reads these): record which rotation
+        # command just ran from the progress header, e.g.
+        # "-# 2/8 | **search** -> dig -> ...".
+        try:
+            match = re.search(r"\d/\d\s*\|?\s*\*\*(\w+)\*\*", joined)
+            if not match:
+                return
+            name = match.group(1).lower()
+            key = _STEP_TO_KEY.get(name, name)
+            if key in self.bot.commands_dict and key in self.bot.last_ran:
+                self.bot.last_ran[key] = time.time()
+        except Exception:
+            pass
+
+    def _start_break(self):
+        duration = random.uniform(
+            self._cd("minBreakDuration", 1800), self._cd("maxBreakDuration", 18000)
+        )
+        self._want_stop = False
+        self._breaking = True
+        self._break_until = time.time() + duration
+        self.bot.log(f"flow - taking a break for {int(duration // 60)}m...", "yellow")
+
+    def _maybe_start_break(self):
+        if (
+            self._breaking
+            or self._want_stop
+            or not self._breaks_enabled()
+            or time.time() < self.next_break_at
+        ):
+            return
+        self._want_stop = True
+        self.bot.log("flow - break due, stopping flow first", "yellow")
+
     async def _handle(self, message):
         try:
             if message.channel_id != self.bot.channel.id:
@@ -167,16 +234,31 @@ class Flow(commands.Cog):
             return
         self.last_flow_msg = time.time()
         labels = [(getattr(b, "label", None) or "?") for b in buttons]
+        self._track_step_cooldown(joined)
 
-        # Graceful exit: flow disabled while active -> press Stop.
-        if self.active and not self.enabled():
+        # Graceful exit: flow disabled OR break due while active -> Stop.
+        if self.active and (not self.enabled() or self._want_stop):
             stop = self._find_label(buttons, _STOP_LABELS)
             if stop is not None:
                 if await self.bot.click_button(stop):
-                    self.bot.log("flow - stopped (mode disabled)", "yellow")
+                    if self._want_stop:
+                        self._start_break()
+                    else:
+                        self.bot.log("flow - stopped (mode disabled)", "yellow")
                     self.active = False
             return
         if not self.enabled():
+            return
+
+        # Rate-limit notices (_backoff equivalent): Hold Tight / command
+        # in progress / Too spicy. Pause Continue clicks for a bit.
+        if self.active and any(t in joined for t in _BACKOFF_TEXTS):
+            self._backoff_until = time.time() + _BACKOFF_S
+            self.bot.log(
+                f"flow - rate limited, backing off {_BACKOFF_S}s", "yellow"
+            )
+            return
+        if self.active and time.time() < self._backoff_until:
             return
 
         # 1. Flow list ("### Flows"): open the configured flow.
@@ -286,11 +368,32 @@ class Flow(commands.Cog):
     @tasks.loop(seconds=30)
     async def flow_driver(self):
         try:
-            if not self.enabled() or not self.bot.state:
+            if not self.enabled():
+                self._want_stop = False
+                self._breaking = False
+                return
+            if not self.bot.state:
+                return
+            if self._breaking:
+                if time.time() >= self._break_until:
+                    self._breaking = False
+                    self.bot.log("flow - break over, resuming", "green")
+                    self.next_break_at = time.time() + random.uniform(
+                        self._cd("minBreakCooldown", 3600),
+                        self._cd("maxBreakCooldown", 10800),
+                    )
                 return
             if self.bot.hold_command:
                 return
-            if self.active:
+            # No flow message for a while while waiting to stop: give up
+            # on the Stop click and rest anyway; View re-attaches later.
+            if self._want_stop and time.time() - self.last_flow_msg > 300:
+                self.bot.log("flow - no screen to stop on, resting anyway", "yellow")
+                self.active = False
+                self._start_break()
+                return
+            self._maybe_start_break()
+            if self._want_stop or self.active:
                 return
             if time.time() - self.last_flow_msg < 90:
                 return
