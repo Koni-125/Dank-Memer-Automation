@@ -1,4 +1,6 @@
+import copy
 import json
+import os
 import re
 import threading
 import time
@@ -10,6 +12,63 @@ from aiohttp import web
 
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def validate_settings(incoming):
+    # Structural guard so a valid-JSON but wrong-shape save cannot brick
+    # the running bots (they index settings["commands"][name] directly).
+    if not isinstance(incoming, dict):
+        return "top-level JSON must be an object"
+    commands = incoming.get("commands")
+    if not isinstance(commands, dict) or not commands:
+        return "'commands' must be a non-empty object"
+    for name, cfg in commands.items():
+        if not isinstance(cfg, dict):
+            return f"command '{name}' must be an object"
+        if "enabled" in cfg and not isinstance(cfg["enabled"], bool):
+            return f"command '{name}.enabled' must be a boolean"
+        if "delay" in cfg and not isinstance(cfg["delay"], (int, float)):
+            return f"command '{name}.delay' must be a number"
+    settings = incoming.get("settings")
+    if not isinstance(settings, dict):
+        return "'settings' must be an object"
+    return None
+
+
+def refresh_bot_settings(bot, fresh):
+    # Each bot gets its own copy so account-specific mutations (e.g.
+    # onboarding locks) don't leak across accounts. Cogs that cached
+    # config at startup re-read it via refresh_settings().
+    bot.settings_dict = copy.deepcopy(fresh)
+    cogs = []
+    try:
+        mapping = getattr(bot, "cogs", None)
+        if isinstance(mapping, dict):
+            cogs = list(mapping.values())
+        elif mapping is not None:
+            cogs = list(mapping)
+    except Exception:
+        cogs = []
+    if not cogs:
+        get_cog = getattr(bot, "get_cog", None)
+        if callable(get_cog):
+            for name in (
+                "Commands", "Search", "Crime", "Tidy", "Trivia",
+                "Stream", "Onboarding", "Adventure", "Fish", "Blackjack",
+            ):
+                try:
+                    cog = get_cog(name)
+                except Exception:
+                    cog = None
+                if cog is not None:
+                    cogs.append(cog)
+    for cog in cogs:
+        fn = getattr(cog, "refresh_settings", None)
+        if callable(fn):
+            try:
+                fn()
+            except Exception:
+                pass
 
 # Commands driven by the normal rotation loop (main.py commands_dict keys).
 ROTATION_COMMANDS = [
@@ -140,18 +199,36 @@ def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: P
         return web.json_response(data)
 
     async def api_settings_put(request):
-        incoming = await request.json()
-        with open(settings_path, "w", encoding="utf-8") as f:
+        try:
+            incoming = await request.json()
+        except Exception:
+            return web.json_response({"ok": False, "error": "invalid JSON"}, status=400)
+        error = validate_settings(incoming)
+        if error is not None:
+            return web.json_response({"ok": False, "error": error}, status=400)
+        # Atomic write: a crash mid-save must not leave a truncated file.
+        tmp_path = settings_path.with_name(settings_path.name + ".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(incoming, f, indent=4)
+        os.replace(tmp_path, settings_path)
         return web.json_response({"ok": True})
 
     async def api_settings_reload(_request):
-        with open(settings_path, "r", encoding="utf-8") as f:
-            fresh = json.load(f)
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                fresh = json.load(f)
+        except (OSError, ValueError) as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=400)
+        error = validate_settings(fresh)
+        if error is not None:
+            return web.json_response({"ok": False, "error": error}, status=400)
         with state._lock:
             bots = list(state._bots)
         for bot in bots:
-            bot.settings_dict = fresh
+            try:
+                refresh_bot_settings(bot, fresh)
+            except Exception:
+                continue
         return web.json_response({"ok": True, "reloaded_bots": len(bots)})
 
     async def api_commands(_request):
