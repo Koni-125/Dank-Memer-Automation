@@ -6,6 +6,8 @@ import components_v2
 
 from discord.ext import commands, tasks
 
+from cogs.commands import commands_min_cd
+
 DANK_MEMER_ID = 270904126974590976
 
 # Labels on Dank Memer's flow UI (all components v2). List/detail screens
@@ -46,6 +48,7 @@ class Flow(commands.Cog):
         self._breaking = False
         self._break_until = 0
         self._backoff_until = 0
+        self._step_wait_until = 0
         self.next_break_at = time.time() + random.uniform(
             self._cd("minBreakCooldown", 3600), self._cd("maxBreakCooldown", 10800)
         )
@@ -136,13 +139,30 @@ class Flow(commands.Cog):
             if "flow-" in (getattr(b, "custom_id", None) or "")
         ]
 
-    def _find_label(self, buttons, needles):
+    def _find_label(self, buttons, needles, only_enabled=True):
         for b in buttons:
             label = (getattr(b, "label", None) or "").lower()
             if any(n in label for n in needles):
-                if not getattr(b, "disabled", False):
-                    return b
+                if only_enabled and getattr(b, "disabled", False):
+                    continue
+                return b
         return None
+
+    def _cooldown_wait_s(self, joined):
+        # How long until the current step's command is off cooldown,
+        # from the shared last_ran dict (same object commands.py uses).
+        # Floor 5s, cap 300s so a stale entry can't stall us for hours.
+        try:
+            match = re.search(r"\d/\d\s*\|?\s*\*\*(\w+)\*\*", joined)
+            if match:
+                name = match.group(1).lower()
+                key = _STEP_TO_KEY.get(name, name)
+                last = self.bot.last_ran.get(key, 0)
+                min_cd = commands_min_cd.get(key, 30)
+                return max(5, min(300, int(last + min_cd - time.time())))
+        except Exception:
+            pass
+        return 30
 
     def _find_view_accessory(self, message):
         # "View" is a section accessory; pick the section for our flow.
@@ -237,6 +257,8 @@ class Flow(commands.Cog):
         self._track_step_cooldown(joined)
 
         # Graceful exit: flow disabled OR break due while active -> Stop.
+        # Loud when the Stop button is missing/disabled so a silent stall
+        # is visible instead of a mystery.
         if self.active and (not self.enabled() or self._want_stop):
             stop = self._find_label(buttons, _STOP_LABELS)
             if stop is not None:
@@ -246,6 +268,12 @@ class Flow(commands.Cog):
                     else:
                         self.bot.log("flow - stopped (mode disabled)", "yellow")
                     self.active = False
+                else:
+                    self.bot.log("flow - Stop click failed, retrying", "red")
+            else:
+                self.bot.log(
+                    f"flow - want stop, no enabled Stop button: {labels}", "yellow"
+                )
             return
         if not self.enabled():
             return
@@ -335,6 +363,10 @@ class Flow(commands.Cog):
                     "yellow",
                 )
                 return
+            if time.time() < self._step_wait_until:
+                # Cooling down for a disabled Continue; fresh updates
+                # still arrive and re-enter here when it enables.
+                return
             step = self._find_label(buttons, _STEP_LABELS)
             if step is not None:
                 if await self.bot.click_button(step):
@@ -345,6 +377,17 @@ class Flow(commands.Cog):
                     self.bot.log(
                         f"flow click failed ({getattr(step, 'label', None)})", "red"
                     )
+                return
+            parked = self._find_label(buttons, _STEP_LABELS, only_enabled=False)
+            if parked is not None:
+                # Continue exists but is disabled: the step's command is
+                # on cooldown. Wait it out per last_ran -- do NOT fall
+                # through to Skip/unknown handling.
+                wait = self._cooldown_wait_s(joined)
+                self._step_wait_until = time.time() + wait
+                self.bot.log(
+                    f"flow - Continue disabled, cooling down ~{wait}s", "yellow"
+                )
                 return
             skip = self._find_label(buttons, _SKIP_LABELS)
             if skip is not None:
