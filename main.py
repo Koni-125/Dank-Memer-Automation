@@ -171,6 +171,11 @@ async def start_bot(token, channel_id):
 
             for command in self.commands_dict:
                 self.last_ran[command] = 0
+            # Cache of full raw payloads by message id. MESSAGE_UPDATE
+            # events are partial (changed fields only), so edits are merged
+            # over the cached CREATE payload to keep authorship/channel
+            # context for recipient filtering.
+            self._raw_message_cache = {}
 
         async def send_cmd(self, content, **kwargs):
             if not self.state:
@@ -442,7 +447,30 @@ async def start_bot(token, channel_id):
             except OSError:
                 pass
 
-            message = components_v2.message.get_message_obj(parsed_msg["d"])
+            message = None
+            try:
+                raw_d = parsed_msg["d"] if isinstance(parsed_msg.get("d"), dict) else {}
+                msg_id = raw_d.get("id")
+                if parsed_msg["t"] == "MESSAGE_CREATE":
+                    if msg_id is not None:
+                        self._raw_message_cache[msg_id] = raw_d
+                        if len(self._raw_message_cache) > 1000:
+                            self._raw_message_cache.pop(
+                                next(iter(self._raw_message_cache))
+                            )
+                    merged_d = raw_d
+                else:
+                    base = (
+                        self._raw_message_cache.get(msg_id, {})
+                        if msg_id is not None
+                        else {}
+                    )
+                    merged_d = {**base, **raw_d}
+                    if msg_id is not None:
+                        self._raw_message_cache[msg_id] = merged_d
+                message = components_v2.message.get_message_obj(merged_d)
+            except Exception:
+                return
 
             if not components_v2.message.is_message_for_user(message, self.user.id):
                 return
