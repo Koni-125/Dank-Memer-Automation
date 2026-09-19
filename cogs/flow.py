@@ -503,6 +503,18 @@ class Flow(commands.Cog):
                 return
             if not self.bot.state:
                 return
+            # Schedule breaks before the hold gate: transient click holds
+            # (0.5-1.5s around every Continue/game click) must not push the
+            # due check past its window tick after tick. The Stop click
+            # itself happens in _handle on the next flow screen.
+            self._maybe_start_break()
+            # No flow message for a while while waiting to stop: give up
+            # on the Stop click and rest anyway; View re-attaches later.
+            if self._want_stop and time.time() - self.last_flow_msg > 300:
+                self.bot.log("flow - no screen to stop on, resting anyway", "yellow")
+                self.active = False
+                self._start_break()
+                return
             if self._breaking:
                 if time.time() >= self._break_until:
                     self._breaking = False
@@ -514,14 +526,6 @@ class Flow(commands.Cog):
                 return
             if self.bot.hold_command:
                 return
-            # No flow message for a while while waiting to stop: give up
-            # on the Stop click and rest anyway; View re-attaches later.
-            if self._want_stop and time.time() - self.last_flow_msg > 300:
-                self.bot.log("flow - no screen to stop on, resting anyway", "yellow")
-                self.active = False
-                self._start_break()
-                return
-            self._maybe_start_break()
             if self._want_stop or self.active:
                 return
             if time.time() - self.last_flow_msg < 90:
