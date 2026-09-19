@@ -10,6 +10,8 @@ class Hl(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot.message_dispatcher.register(self.log_messages)
+        # Flow steps arrive as MESSAGE_UPDATE on the flow message.
+        self.bot.message_dispatcher.register(self.log_messages, edit=True)
 
     async def log_messages(self, message):
         # Components_v2 high-low prompt (container + text_display + buttons).

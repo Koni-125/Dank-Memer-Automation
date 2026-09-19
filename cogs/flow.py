@@ -210,20 +210,26 @@ class Flow(commands.Cog):
                 self.active = True
             return
 
-        # 4. Active flow step: advance to the next command.
+        # 4. Active flow step: advance to the next command. Game-choice
+        # buttons (e.g. search locations) belong to the game cogs, which
+        # run later in the same dispatch pass -- if any non-navigation
+        # flow button is present, wait for them instead of Continuing.
         if self.active:
+            nav = _STEP_LABELS + _SKIP_LABELS + _STOP_LABELS
+            pending = [
+                b
+                for b in buttons
+                if not getattr(b, "disabled", False)
+                and not any(n in (getattr(b, "label", None) or "").lower() for n in nav)
+            ]
+            if pending:
+                self.bot.log(
+                    "flow - waiting for game: "
+                    + str([(getattr(b, "label", None) or "?") for b in pending]),
+                    "yellow",
+                )
+                return
             step = self._find_label(buttons, _STEP_LABELS)
-            if step is None:
-                # Fallback: the only enabled flow button that isn't
-                # stop/skip. Ambiguous screens are logged, not clicked.
-                others = [
-                    b
-                    for b in buttons
-                    if not getattr(b, "disabled", False)
-                    and (getattr(b, "label", None) or "").lower()
-                    not in _STOP_LABELS + _SKIP_LABELS
-                ]
-                step = others[0] if len(others) == 1 else None
             if step is not None:
                 if await self.bot.click_button(step):
                     self.bot.log(

@@ -13,6 +13,8 @@ class Search(commands.Cog):
         self.second_priority = search_config["second_priority"]
         self.avoid = search_config["avoid"]
         self.bot.message_dispatcher.register(self.log_messages)
+        # Flow steps arrive as MESSAGE_UPDATE on the flow message.
+        self.bot.message_dispatcher.register(self.log_messages, edit=True)
 
     def refresh_settings(self):
         # Dashboard Apply replaces settings_dict; re-point cached lists.

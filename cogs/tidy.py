@@ -7,6 +7,8 @@ class Tidy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot.message_dispatcher.register(self.log_messages)
+        # Flow steps arrive as MESSAGE_UPDATE on the flow message.
+        self.bot.message_dispatcher.register(self.log_messages, edit=True)
 
         tidy_config = self.bot.settings_dict["commands"]["tidy"]
         preferred_tool = tidy_config.get("tools", tidy_config.get("tool"))
