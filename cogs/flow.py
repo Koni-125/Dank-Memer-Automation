@@ -220,6 +220,11 @@ class Flow(commands.Cog):
             or time.time() < self.next_break_at
         ):
             return
+        if not self.active:
+            # Nothing running: rest immediately, no Stop dance needed.
+            self.bot.log("flow - break due, no active flow", "yellow")
+            self._start_break()
+            return
         self._want_stop = True
         self.bot.log("flow - break due, stopping flow first", "yellow")
 
@@ -276,6 +281,12 @@ class Flow(commands.Cog):
                 )
             return
         if not self.enabled():
+            return
+
+        # Stopping for a break: freeze everything except the Stop click
+        # above. Advancing (Continue/Start/View) while trying to stop
+        # just keeps the flow alive.
+        if self._want_stop:
             return
 
         # Rate-limit notices (_backoff equivalent): Hold Tight / command
