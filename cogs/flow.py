@@ -196,40 +196,53 @@ class Flow(commands.Cog):
                 continue
         return found
 
+    def _game_pending(self, buttons):
+        # Non-navigation enabled buttons belong to the game cogs (search
+        # locations, crime choices...), which run later in the same
+        # dispatch pass -- if any are present, wait for them.
+        nav = _STEP_LABELS + _SKIP_LABELS + _STOP_LABELS
+        return [
+            b
+            for b in buttons
+            if not getattr(b, "disabled", False)
+            and not any(n in (getattr(b, "label", None) or "").lower() for n in nav)
+        ]
+
     def _find_stop(self, message, buttons):
         # Stop lives as a section accessory, NOT in message.buttons.
-        stop = self._find_label(buttons, _STOP_LABELS)
-        if stop is not None:
-            return stop
-        for btn in self._section_accessories(message):
-            label = (getattr(btn, "label", None) or "").lower()
-            if any(n in label for n in _STOP_LABELS):
-                if not getattr(btn, "disabled", False):
-                    return btn
-        return None
+        return self._find_label(
+            buttons + self._section_accessories(message), _STOP_LABELS
+        )
 
     def _find_view_accessory(self, message):
         # "View" is a section accessory; pick the section for our flow.
+        # Sections may sit inside containers, so walk nested levels.
         want = self.flow_name().lower()
-        for comp in getattr(message, "components", None) or []:
-            if getattr(comp, "component_name", None) != "section":
-                continue
+        stack = list(getattr(message, "components", None) or [])
+        while stack:
+            comp = stack.pop(0)
             try:
-                texts = [
-                    c.content or ""
-                    for c in comp.components
-                    if getattr(c, "component_name", None) == "text_display"
-                ]
-            except (AttributeError, TypeError):
+                if getattr(comp, "component_name", None) == "section":
+                    try:
+                        texts = [
+                            c.content or ""
+                            for c in comp.components
+                            if getattr(c, "component_name", None) == "text_display"
+                        ]
+                    except (AttributeError, TypeError):
+                        texts = []
+                    if any(want in t.lower() for t in texts):
+                        btn = getattr(comp, "accessory", None)
+                        if (
+                            btn is not None
+                            and "flow-" in (getattr(btn, "custom_id", None) or "")
+                            and not getattr(btn, "disabled", False)
+                        ):
+                            return btn
+                for child in getattr(comp, "components", None) or []:
+                    stack.append(child)
+            except Exception:
                 continue
-            if any(want in t.lower() for t in texts):
-                btn = getattr(comp, "accessory", None)
-                if (
-                    btn is not None
-                    and "flow-" in (getattr(btn, "custom_id", None) or "")
-                    and not getattr(btn, "disabled", False)
-                ):
-                    return btn
         return None
 
     def _parse_step_key(self, joined):
@@ -313,8 +326,10 @@ class Flow(commands.Cog):
         labels = [(getattr(b, "label", None) or "?") for b in buttons]
         acc_labels = [(getattr(b, "label", None) or "?") for b in accessories]
         step_key = self._parse_step_key(joined)
-        # A new step means any old cooldown wait no longer applies.
-        if step_key != self._step_wait_key:
+        # A new step means any old cooldown wait no longer applies. Only
+        # reset on a real header: headerless updates mid-wait must not
+        # clear it early.
+        if step_key is not None and step_key != self._step_wait_key:
             self._step_wait_until = 0
             self._step_wait_key = None
 
@@ -400,13 +415,7 @@ class Flow(commands.Cog):
         # 3b. Resume screen: Continue with no game pending while idle
         # (e.g. re-attaching to a flow left active by a previous session).
         if not self.active:
-            nav = _STEP_LABELS + _SKIP_LABELS + _STOP_LABELS
-            pending = [
-                b
-                for b in buttons
-                if not getattr(b, "disabled", False)
-                and not any(n in (getattr(b, "label", None) or "").lower() for n in nav)
-            ]
+            pending = self._game_pending(buttons)
             if pending:
                 self.bot.log(
                     "flow - idle with game pending, waiting: "
@@ -426,13 +435,7 @@ class Flow(commands.Cog):
         # run later in the same dispatch pass -- if any non-navigation
         # flow button is present, wait for them instead of Continuing.
         if self.active:
-            nav = _STEP_LABELS + _SKIP_LABELS + _STOP_LABELS
-            pending = [
-                b
-                for b in buttons
-                if not getattr(b, "disabled", False)
-                and not any(n in (getattr(b, "label", None) or "").lower() for n in nav)
-            ]
+            pending = self._game_pending(buttons)
             if pending:
                 self.bot.log(
                     "flow - waiting for game: "
@@ -488,11 +491,16 @@ class Flow(commands.Cog):
                         self.bot.log("flow - skipped stuck step", "yellow")
                     self._skip_sightings.pop(mid, None)
                 return
-            self.bot.log(f"flow - unknown step buttons: {labels}", "red")
+            self.bot.log(
+                f"flow - unknown step buttons: {labels + acc_labels}", "red"
+            )
             return
 
         # 5. Not active and no list/start matched: log for learning.
-        self.bot.log(f"flow - idle, buttons: {labels} | {joined[:120]}", "yellow")
+        self.bot.log(
+            f"flow - idle, buttons: {labels + acc_labels} | {joined[:120]}",
+            "yellow",
+        )
 
     @tasks.loop(seconds=30)
     async def flow_driver(self):
