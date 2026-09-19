@@ -288,7 +288,11 @@ class Flow(commands.Cog):
                 except Exception as e:
                     self.bot.log(f"flow - structure probe failed: {e}", "red")
             self.bot.log("flow - requesting flow list", "green")
-            await self.bot.send_slash(["flow", "list"])
+            # /flow takes a single optional 'flow' name option (no
+            # subcommands in the fetched command data). Invoking it bare
+            # renders the flow list; passing a name tries to run it, so
+            # never fill the option with e.g. "list".
+            await self.bot.send_slash(["flow"])
         except Exception as e:
             self.bot.log(f"flow driver error: {e}", "red")
 
