@@ -346,8 +346,10 @@
       $("nav" + p[0].toUpperCase() + p.slice(1)).classList.toggle("active", p === name);
     }
     history.replaceState(null, "", name === "logs" ? "#" : "#" + name);
-    // Never clobber unsaved edits when switching tabs: only fetch on first open.
-    if (name === "settings") ensureSettings().then(syncEditor);
+    // Never clobber unsaved edits when switching tabs: only populate an
+    // empty editor. Direct textarea typing never touches settingsData, so
+    // re-syncing here would silently discard it.
+    if (name === "settings") ensureSettings().then(() => { if (!$("settingsEditor").value.trim()) syncEditor(); });
     if (name === "commands") ensureSettings().then(() => ensureGroups()).then(renderCommands);
     if (name === "accounts" && overviewCache) paintAccounts(overviewCache);
   }
@@ -568,12 +570,18 @@
       const raw = $("settingsEditor").value;
       if (raw.trim()) {
         const parsed = JSON.parse(raw);
-        await fetch("/api/settings", { method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(parsed) });
+        const putRes = await fetch("/api/settings", { method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(parsed) });
+        if (!putRes.ok) { toast("Save failed, not applied", true); return; }
         settingsData = parsed;
       }
     } catch (e) { toast("Invalid JSON", true); return; }
     const res = await fetch("/api/settings/reload", { method: "POST" });
-    if (!res.ok) { toast("Reload failed", true); return; }
+    if (!res.ok) {
+      let msg = "Reload failed";
+      try { msg = (await res.json()).error || msg; } catch (e) { /* keep default */ }
+      toast(msg, true);
+      return;
+    }
     toast(`Applied to ${(await res.json().catch(() => ({}))).reloaded_bots ?? "?"} bot(s)`);
   }
 
