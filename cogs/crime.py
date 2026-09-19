@@ -49,8 +49,10 @@ class Crime(commands.Cog):
         button = self._pick(clickable)
         if button is None:
             return
-        await self.bot.click_button(button)
-        self.bot.log(f"crime - clicked {button.label}", "green")
+        if await self.bot.click_button(button):
+            self.bot.log(f"crime - clicked {button.label}", "green")
+        else:
+            self.bot.log(f"crime click failed ({button.label})", "red")
 
     async def log_messages(self, message):
         await self._handle(message)
@@ -73,19 +75,25 @@ class Crime(commands.Cog):
                     if (button.label or "").lower() in self.priority and not getattr(
                         button, "disabled", False
                     ):
-                        await self.bot.click(message, 0, count)
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("crime click failed (legacy)", "red")
                         return
                 for count, button in children:
                     if (button.label or "").lower() in self.second_priority and not getattr(
                         button, "disabled", False
                     ):
-                        await self.bot.click(message, 0, count)
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("crime click failed (legacy)", "red")
                         return
                 for count, button in children:
                     if (button.label or "").lower() not in self.avoid and not getattr(
                         button, "disabled", False
                     ):
-                        await self.bot.click(message, 0, count)
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("crime click failed (legacy)", "red")
                         return
 
 

@@ -46,8 +46,10 @@ class Search(commands.Cog):
         button = self._pick(clickable)
         if button is None:
             return
-        await self.bot.click_button(button)
-        self.bot.log(f"search - clicked {button.label}", "green")
+        if await self.bot.click_button(button):
+            self.bot.log(f"search - clicked {button.label}", "green")
+        else:
+            self.bot.log(f"search click failed ({button.label})", "red")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -66,15 +68,21 @@ class Search(commands.Cog):
                 self.bot.random.shuffle(children)
                 for count, button in children:
                     if button.label.lower() in self.priority:
-                        await self.bot.click(message, 0, count)
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("search click failed (legacy)", "red")
                         return
                 for count, button in children:
                     if button.label.lower() in self.second_priority:
-                        await self.bot.click(message, 0, count)
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("search click failed (legacy)", "red")
                         return
                 for count, button in children:
                     if button.label.lower() not in self.avoid:
-                        await self.bot.click(message, 0, count)
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("search click failed (legacy)", "red")
                         return
 
 

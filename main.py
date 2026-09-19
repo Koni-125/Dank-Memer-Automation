@@ -322,6 +322,7 @@ async def start_bot(token, channel_id):
             try:
                 await asyncio.sleep(wait_time)
                 await message.components[component].children[children].click()
+                return True
             except (discord.errors.HTTPException, discord.errors.InvalidData) as e:
                 status = getattr(e, 'status', 'Unknown Status')
                 code = getattr(e, 'code', 'No Error Code')
@@ -341,6 +342,7 @@ async def start_bot(token, channel_id):
                     lines.append("FAILED: Forbidden. Check if the message is ephemeral or if you lack permissions.")
                 lines.append("---------------------------")
                 self.log("\n".join(lines), "red")
+                return False
             finally:
                 if self.hold_command:
                     await self.set_command_hold_stat(False)

@@ -38,9 +38,11 @@ class Hl(commands.Cog):
         want = "Lower" if num >= 50 else "Higher"
         for button in message.buttons:
             if button.label == want and not button.disabled:
-                await self.bot.click_button(button)
-                self.bot.log(f"hl clicked {want} (hint {num})", "green")
-                self.bot.last_ran["hl"] = time.time()
+                if await self.bot.click_button(button):
+                    self.bot.log(f"hl clicked {want} (hint {num})", "green")
+                    self.bot.last_ran["hl"] = time.time()
+                else:
+                    self.bot.log(f"hl click failed ({want}, hint {num})", "red")
                 return
 
     @commands.Cog.listener()
@@ -74,12 +76,15 @@ class Hl(commands.Cog):
             if not children or len(children) < 3:
                 return
             if not getattr(children[0], "disabled", False) and num >= 50:
-                await self.bot.click(message, 0, 0)
+                clicked = await self.bot.click(message, 0, 0)
             elif not getattr(children[2], "disabled", False) and num < 50:
-                await self.bot.click(message, 0, 2)
+                clicked = await self.bot.click(message, 0, 2)
             else:
                 return
-            self.bot.last_ran["hl"] = time.time()
+            if clicked:
+                self.bot.last_ran["hl"] = time.time()
+            else:
+                self.bot.log("hl click failed (legacy)", "red")
 
 
 async def setup(bot):

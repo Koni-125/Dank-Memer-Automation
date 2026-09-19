@@ -61,8 +61,10 @@ class Tidy(commands.Cog):
         if button is None:
             return
 
-        await self.bot.click_button(button)
-        self.bot.log(f"tidy - clicked {button.label}", "green")
+        if await self.bot.click_button(button):
+            self.bot.log(f"tidy - clicked {button.label}", "green")
+        else:
+            self.bot.log(f"tidy click failed ({button.label})", "red")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -112,7 +114,11 @@ class Tidy(commands.Cog):
         if button is None:
             return
 
-        await button.click()
+        try:
+            await button.click()
+        except Exception as e:
+            self.bot.log(f"tidy click failed (legacy): {e}", "red")
+            return
         self.bot.log(f"tidy - clicked {button.label}", "green")
 
 
