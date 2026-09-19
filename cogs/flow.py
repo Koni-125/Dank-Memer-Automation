@@ -49,6 +49,7 @@ class Flow(commands.Cog):
         self._break_until = 0
         self._backoff_until = 0
         self._step_wait_until = 0
+        self._step_wait_key = None
         self.next_break_at = time.time() + random.uniform(
             self._cd("minBreakCooldown", 3600), self._cd("maxBreakCooldown", 10800)
         )
@@ -148,21 +149,64 @@ class Flow(commands.Cog):
                 return b
         return None
 
-    def _cooldown_wait_s(self, joined):
-        # How long until the current step's command is off cooldown,
-        # from the shared last_ran dict (same object commands.py uses).
-        # Floor 5s, cap 300s so a stale entry can't stall us for hours.
+    def _cooldown_wait_s(self, key):
+        # How long until this step's command is off cooldown, from the
+        # shared last_ran dict (same object commands.py uses). last_ran
+        # is only set when the step fires, so this is the previous loop's
+        # timestamp. Floor 5s, cap 300s so a stale entry can't stall us.
         try:
-            match = re.search(r"\d/\d\s*\|?\s*\*\*(\w+)\*\*", joined)
-            if match:
-                name = match.group(1).lower()
-                key = _STEP_TO_KEY.get(name, name)
+            if key:
                 last = self.bot.last_ran.get(key, 0)
                 min_cd = commands_min_cd.get(key, 30)
-                return max(5, min(300, int(last + min_cd - time.time())))
+                remaining = int(last + min_cd - time.time())
+                if remaining > 0:
+                    return max(5, min(300, remaining))
+                return 5
         except Exception:
             pass
         return 30
+
+    def _section_accessories(self, message):
+        # Section accessories (View, Stop) never land in message.buttons:
+        # walker() drops section accessories instead of propagating them,
+        # so collect them here. Only flow buttons (flow- in custom_id).
+        found = []
+        try:
+            comps = getattr(message, "components", None) or []
+        except Exception:
+            return found
+        # Sections may sit inside containers, so walk one level deep.
+        stack = list(comps)
+        while stack:
+            comp = stack.pop(0)
+            try:
+                if getattr(comp, "component_name", None) == "section":
+                    btn = getattr(comp, "accessory", None)
+                    if (
+                        btn is not None
+                        and "flow-" in (getattr(btn, "custom_id", None) or "")
+                    ):
+                        found.append(btn)
+                    for child in getattr(comp, "components", None) or []:
+                        stack.append(child)
+                    continue
+                for child in getattr(comp, "components", None) or []:
+                    stack.append(child)
+            except Exception:
+                continue
+        return found
+
+    def _find_stop(self, message, buttons):
+        # Stop lives as a section accessory, NOT in message.buttons.
+        stop = self._find_label(buttons, _STOP_LABELS)
+        if stop is not None:
+            return stop
+        for btn in self._section_accessories(message):
+            label = (getattr(btn, "label", None) or "").lower()
+            if any(n in label for n in _STOP_LABELS):
+                if not getattr(btn, "disabled", False):
+                    return btn
+        return None
 
     def _find_view_accessory(self, message):
         # "View" is a section accessory; pick the section for our flow.
@@ -188,17 +232,24 @@ class Flow(commands.Cog):
                     return btn
         return None
 
-    def _track_step_cooldown(self, joined):
-        # Reference only (flow never reads these): record which rotation
-        # command just ran from the progress header, e.g.
-        # "-# 2/8 | **search** -> dig -> ...".
+    def _parse_step_key(self, joined):
+        # Bold name in the progress header ("-# 2/8 | **search** -> ...")
+        # is the CURRENT step; map display name to rotation key.
         try:
             match = re.search(r"\d/\d\s*\|?\s*\*\*(\w+)\*\*", joined)
             if not match:
-                return
+                return None
             name = match.group(1).lower()
-            key = _STEP_TO_KEY.get(name, name)
-            if key in self.bot.commands_dict and key in self.bot.last_ran:
+            return _STEP_TO_KEY.get(name, name)
+        except Exception:
+            return None
+
+    def _mark_step_ran(self, key):
+        # Shared last_ran dict (same object commands.py uses). Set only
+        # when the step actually fires (Continue clicked), never on sight,
+        # so cooldown math uses the previous loop's timestamp.
+        try:
+            if key and key in self.bot.commands_dict and key in self.bot.last_ran:
                 self.bot.last_ran[key] = time.time()
         except Exception:
             pass
@@ -253,19 +304,26 @@ class Flow(commands.Cog):
         if "flow" in joined.lower():
             self.last_flow_msg = time.time()
         buttons = self._flow_buttons(message)
-        if not buttons:
+        accessories = self._section_accessories(message)
+        if not buttons and not accessories:
             if joined.strip():
                 self.bot.log(f"flow - reply: {joined.strip()[:150]}", "yellow")
             return
         self.last_flow_msg = time.time()
         labels = [(getattr(b, "label", None) or "?") for b in buttons]
-        self._track_step_cooldown(joined)
+        acc_labels = [(getattr(b, "label", None) or "?") for b in accessories]
+        step_key = self._parse_step_key(joined)
+        # A new step means any old cooldown wait no longer applies.
+        if step_key != self._step_wait_key:
+            self._step_wait_until = 0
+            self._step_wait_key = None
 
         # Graceful exit: flow disabled OR break due while active -> Stop.
-        # Loud when the Stop button is missing/disabled so a silent stall
-        # is visible instead of a mystery.
+        # Stop is a section accessory (never in message.buttons), so use
+        # _find_stop which checks both. Loud when missing so a stall is
+        # visible instead of a mystery.
         if self.active and (not self.enabled() or self._want_stop):
-            stop = self._find_label(buttons, _STOP_LABELS)
+            stop = self._find_stop(message, buttons)
             if stop is not None:
                 if await self.bot.click_button(stop):
                     if self._want_stop:
@@ -273,14 +331,22 @@ class Flow(commands.Cog):
                     else:
                         self.bot.log("flow - stopped (mode disabled)", "yellow")
                     self.active = False
+                    self._step_wait_until = 0
+                    self._step_wait_key = None
                 else:
                     self.bot.log("flow - Stop click failed, retrying", "red")
             else:
                 self.bot.log(
-                    f"flow - want stop, no enabled Stop button: {labels}", "yellow"
+                    f"flow - want stop, no Stop found "
+                    f"(buttons={labels} accessories={acc_labels})",
+                    "yellow",
                 )
             return
         if not self.enabled():
+            return
+        # Resting: ignore all flow screens so the list screen can't
+        # re-open the flow via View mid-break.
+        if self._breaking:
             return
 
         # Stopping for a break: freeze everything except the Stop click
@@ -313,7 +379,7 @@ class Flow(commands.Cog):
             return
 
         # 2. Completion text + Stop -> end of flow.
-        stop = self._find_label(buttons, _STOP_LABELS)
+        stop = self._find_stop(message, buttons)
         if stop is not None and any(
             k in joined.lower()
             for k in ("complet", "finish", "all commands", "flow ended", "well done")
@@ -384,6 +450,11 @@ class Flow(commands.Cog):
                     self.bot.log(
                         f"flow - next ({getattr(step, 'label', None)})", "green"
                     )
+                    # The step's command just fired: stamp last_ran now so
+                    # the NEXT loop's cooldown wait has a real timestamp.
+                    self._mark_step_ran(step_key)
+                    self._step_wait_until = 0
+                    self._step_wait_key = None
                 else:
                     self.bot.log(
                         f"flow click failed ({getattr(step, 'label', None)})", "red"
@@ -392,12 +463,16 @@ class Flow(commands.Cog):
             parked = self._find_label(buttons, _STEP_LABELS, only_enabled=False)
             if parked is not None:
                 # Continue exists but is disabled: the step's command is
-                # on cooldown. Wait it out per last_ran -- do NOT fall
-                # through to Skip/unknown handling.
-                wait = self._cooldown_wait_s(joined)
+                # on cooldown. Wait it out per shared last_ran (set when
+                # the step last fired) -- do NOT fall through to Skip.
+                # Re-check when the wait expires; the button should enable.
+                wait = self._cooldown_wait_s(step_key)
                 self._step_wait_until = time.time() + wait
+                self._step_wait_key = step_key
                 self.bot.log(
-                    f"flow - Continue disabled, cooling down ~{wait}s", "yellow"
+                    f"flow - Continue disabled ({step_key or '?'}), "
+                    f"cooling down ~{wait}s",
+                    "yellow",
                 )
                 return
             skip = self._find_label(buttons, _SKIP_LABELS)
