@@ -473,7 +473,11 @@ async def start_bot(token, channel_id):
                 return
 
             if not components_v2.message.is_message_for_user(message, self.user.id):
-                return
+                # Flow-fired results reference the flow, not our "pls"
+                # sends; let the Flow cog admit them while a flow runs.
+                _flow_cog = self.get_cog("Flow")
+                if _flow_cog is None or not _flow_cog.should_accept(message):
+                    return
 
             if message.channel.id != self.channel_id:
                 return

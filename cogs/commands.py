@@ -238,6 +238,13 @@ class Commands(commands.Cog):
                 await asyncio.sleep(1)
                 return
 
+            # Flow mode owns the loop: it clicks through /flow instead of
+            # sending prefix commands, so this loop must NOT run with it.
+            flow_cog = self.bot.get_cog("Flow")
+            if flow_cog is not None and flow_cog.rotation_paused():
+                await asyncio.sleep(1)
+                return
+
             await self.maybe_take_break()
 
             shuffled_commands = list(self.bot.commands_dict)[:]

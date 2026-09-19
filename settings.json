@@ -323,6 +323,10 @@
         "onboarding": {
             "enabled": false
         },
+        "flow": {
+            "enabled": false,
+            "flow_name": "Basic Grinding"
+        },
         "slashCommands": false
     }
 }
