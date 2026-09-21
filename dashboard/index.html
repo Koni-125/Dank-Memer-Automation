@@ -75,7 +75,6 @@
       }
     }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
     html, body { min-height: 100%; }
     body {
       margin: 0; background: var(--ink); color: var(--parchment);
@@ -104,12 +103,6 @@
     }
     .brand h1 { margin: 0; font-family: var(--display); font-size: 19px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
     .brand small { display: block; color: var(--faint); font-weight: 500; font-size: 10.5px; font-family: ui-monospace, Menlo, Consolas, monospace; }
-    nav.decknav { display: flex; align-items: center; gap: 2px; margin: 0 auto; overflow-x: auto; max-width: 100%; }
-    nav.decknav a {
-      color: var(--ash); text-decoration: none; font-size: 13px; font-weight: 650;
-      padding: 7px 13px; border-radius: 8px; white-space: nowrap;
-    }
-    nav.decknav a:hover { color: var(--parchment); background: var(--wash-strong); }
     .live { display: flex; align-items: center; gap: 14px; margin-left: auto; flex: none; }
     .worth { display: flex; align-items: baseline; gap: 8px; }
     .worth .wk { font-size: 12px; font-weight: 600; color: var(--faint); }
@@ -119,7 +112,7 @@
       font-variant-numeric: tabular-nums; white-space: nowrap;
     }
     .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--hot); flex: none; align-self: center; animation: pulse 1.8s ease-in-out infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--hot); } 50% { opacity: .45; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
     .conn { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ash); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
     .dot.on { background: var(--moss); box-shadow: 0 0 8px var(--moss); }
@@ -136,6 +129,32 @@
     .theme button:hover { color: var(--parchment); }
     .theme button.active { background: var(--raised); color: var(--parchment); box-shadow: inset 0 0 0 1px var(--seam); }
 
+    /* tab strip: the pit's cage doors */
+    .tabs {
+      position: sticky; top: 55px; z-index: 39;
+      display: flex; gap: 4px; padding: 10px 22px 0;
+      background: color-mix(in srgb, var(--ink) 88%, transparent);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--seam-soft);
+      overflow-x: auto;
+    }
+    .tabs button {
+      background: none; border: 0; border-bottom: 3px solid transparent;
+      color: var(--ash); font-size: 13.5px; font-weight: 700;
+      padding: 8px 14px 10px; cursor: pointer; font-family: var(--display);
+      letter-spacing: -0.01em; white-space: nowrap;
+    }
+    .tabs button:hover { color: var(--parchment); }
+    .tabs button.active { color: var(--accent-hi); border-bottom-color: var(--accent); }
+    .tabs button .n {
+      display: inline-block; min-width: 20px; text-align: center;
+      font-size: 11px; font-family: inherit; font-weight: 800;
+      background: var(--raised); border: 1px solid var(--seam);
+      color: var(--ash); border-radius: 999px; padding: 0 6px; margin-left: 7px;
+      font-variant-numeric: tabular-nums;
+    }
+    .tabs button.active .n { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+
     /* session tape: the pit's ticker */
     .tape { border-bottom: 1px solid var(--seam-soft); background: var(--vault); overflow: hidden; }
     .tape-track {
@@ -150,6 +169,8 @@
     .tick-sep { color: var(--hot); font-weight: 700; }
 
     main { max-width: 1180px; margin: 0 auto; padding: 26px 24px 60px; }
+    .tabpanel { display: none; }
+    .tabpanel.active { display: block; }
 
     /* hero: the money printer */
     .hero {
@@ -186,7 +207,7 @@
     .mini .s { font-size: 12px; color: var(--faint); margin-left: auto; flex: none; }
 
     /* modules */
-    .block { margin-bottom: 30px; scroll-margin-top: 76px; }
+    .block { margin-bottom: 30px; }
     .block-head { display: flex; align-items: baseline; gap: 12px; margin: 0 2px 12px; flex-wrap: wrap; }
     .block-head h2 { margin: 0; font-family: var(--display); font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
     .block-head .cnt { font-size: 12px; font-weight: 700; color: var(--ink); background: var(--accent); border-radius: 999px; padding: 1px 9px; font-variant-numeric: tabular-nums; }
@@ -200,10 +221,15 @@
       font-family: inherit;
     }
     .btn:hover { border-color: var(--accent); color: var(--accent-hi); }
+    .btn:disabled { opacity: .5; cursor: default; }
     .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--ink); }
     .btn.primary:hover { filter: brightness(1.08); color: var(--ink); }
     .btn.quiet { background: transparent; color: var(--ash); border-color: transparent; }
     .btn.quiet:hover { color: var(--parchment); background: var(--wash-strong); }
+    .btn.danger { border-color: var(--hot); color: var(--hot); background: transparent; }
+    .btn.danger:hover { background: var(--hot); color: #fff; }
+    .btn.restart { border-color: var(--hot); color: var(--hot); }
+    .btn.restart:hover { background: var(--hot); color: #fff; border-color: var(--hot); }
 
     /* stream terminal */
     .levels { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -305,7 +331,19 @@
     .cmd-search:focus { border-color: var(--accent); }
     .cmd-search::placeholder { color: var(--faint); }
 
-    /* vault ledger */
+    /* settings toggles */
+    .set-list { display: flex; flex-direction: column; gap: 8px; }
+    .set-row {
+      background: var(--vault); border: 1px solid var(--seam-soft); border-radius: 13px;
+      padding: 12px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .set-row.on { border-color: rgba(245, 179, 1, .45); }
+    .set-id { flex: 1 1 200px; min-width: 0; }
+    .set-id h3 { margin: 0; font-size: 14px; font-weight: 700; }
+    .set-id p { margin: 2px 0 0; font-size: 12px; color: var(--faint); }
+    .set-row .frow { flex: 0 1 240px; }
+
+    /* accounts */
     .panel { background: var(--vault); border: 1px solid var(--seam-soft); border-radius: 14px; min-width: 0; overflow: hidden; }
     .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--seam-soft); }
     .panel-head h3 { margin: 0; font-size: 13px; font-weight: 650; }
@@ -328,15 +366,21 @@
     .badge.red { color: var(--hot); border-color: var(--hot); }
     .badge.grey { color: var(--ash); }
     .empty { padding: 22px 16px; color: var(--faint); font-size: 13px; }
-
-    /* source */
-    textarea {
-      display: block; width: 100%; height: 420px; min-height: 300px; resize: vertical;
-      background: var(--ink); border: 1px solid var(--seam-soft); border-radius: 12px;
-      color: var(--parchment); padding: 14px 16px; outline: none;
-      font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.3px; line-height: 1.65;
+    .acct-add {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      background: var(--vault); border: 1px solid var(--seam-soft); border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 14px;
     }
-    textarea:focus { border-color: var(--accent); }
+    .acct-add input {
+      background: var(--ink); border: 1px solid var(--seam); color: var(--parchment);
+      border-radius: 8px; padding: 8px 12px; font-size: 12.5px; outline: none;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+    .acct-add input:focus { border-color: var(--accent); }
+    .acct-add input::placeholder { color: var(--faint); }
+    #acctToken { flex: 2 1 260px; min-width: 0; }
+    #acctChannel { flex: 1 1 160px; min-width: 0; }
+
     .hint { color: var(--faint); font-size: 12.5px; margin-bottom: 12px; }
     footer.deck-foot { display: flex; justify-content: space-between; gap: 10px; color: var(--faint); font-size: 12px; padding: 6px 2px 0; }
     footer.deck-foot .mono { font-size: 11.5px; }
@@ -352,14 +396,13 @@
 
     @media (max-width: 900px) {
       .top { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
-      nav.decknav { order: 3; flex-basis: 100%; margin: 0; }
+      .tabs { top: 0; padding: 8px 14px 0; }
       .hero { grid-template-columns: 1fr; }
       .hero-worth .hv { font-size: clamp(48px, 15vw, 72px); }
       main { padding: 18px 14px 48px; }
       .block-head p, .block-head .tools { margin-left: 0; }
     }
     @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
       *, *::before, *::after { animation: none !important; transition: none !important; }
       .tape-track { animation: none; flex-wrap: wrap; white-space: normal; }
     }
@@ -367,16 +410,10 @@
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="#top">
+  <a class="brand" href="#overview">
     <div class="mark">⏣</div>
     <h1>The Pit<small>dank-automation · local</small></h1>
   </a>
-  <nav class="decknav">
-    <a href="#stream">Stream</a>
-    <a href="#board">Switchboard</a>
-    <a href="#vault">Vault</a>
-    <a href="#source">Source</a>
-  </nav>
   <div class="live">
     <div class="theme" role="group" aria-label="Appearance">
       <button id="themeSystem" class="active" title="Follow system" onclick="setTheme('system')">System</button>
@@ -385,25 +422,64 @@
     </div>
     <div class="worth"><span class="wk">Net worth</span><span class="wv" id="netWorth">–</span><span class="pulse"></span></div>
     <div class="conn"><span class="dot" id="runState"></span><span class="txt" id="runStateText">connecting…</span></div>
+    <button class="btn restart" id="restartBtn" onclick="restartBot()" title="Restart the whole bot process">Restart</button>
   </div>
 </header>
+<nav class="tabs" role="tablist" aria-label="Dashboard sections">
+  <button role="tab" data-tab="overview" class="active" onclick="switchTab('overview')">Overview</button>
+  <button role="tab" data-tab="commands" onclick="switchTab('commands')">Commands<span class="n" id="cmdBdg" style="display:none"></span></button>
+  <button role="tab" data-tab="logs" onclick="switchTab('logs')">Logs</button>
+  <button role="tab" data-tab="settings" onclick="switchTab('settings')">Settings</button>
+  <button role="tab" data-tab="accounts" onclick="switchTab('accounts')">Accounts<span class="n" id="acctBdg" style="display:none"></span></button>
+</nav>
 <div class="tape"><div class="tape-track" id="tapeTrack"><span class="tick">warming up the tape…</span></div></div>
 
 <main id="top">
-  <section class="hero">
-    <div class="hero-worth">
-      <div class="k">Net worth</div>
-      <div class="hv" id="heroWorth">–</div>
-      <div class="s"><span id="botsSub">no data yet</span></div>
-    </div>
-    <div class="hero-minis">
-      <div class="mini"><span class="k">Uptime</span><span class="v" id="uptime">–</span><span class="s">hh:mm:ss</span></div>
-      <div class="mini"><span class="k">Bots</span><span class="v" id="botsCount">–</span><span class="s">connected</span></div>
-      <div class="mini"><span class="k">Sent</span><span class="v" id="cmdCount">–</span><span class="s">this session</span></div>
-    </div>
+  <section class="tabpanel active" id="tab-overview" role="tabpanel">
+    <section class="hero">
+      <div class="hero-worth">
+        <div class="k">Net worth</div>
+        <div class="hv" id="heroWorth">–</div>
+        <div class="s"><span id="botsSub">no data yet</span></div>
+      </div>
+      <div class="hero-minis">
+        <div class="mini"><span class="k">Uptime</span><span class="v" id="uptime">–</span><span class="s">hh:mm:ss</span></div>
+        <div class="mini"><span class="k">Bots</span><span class="v" id="botsCount">–</span><span class="s">connected</span></div>
+        <div class="mini"><span class="k">Sent</span><span class="v" id="cmdCount">–</span><span class="s">this session</span></div>
+      </div>
+    </section>
+    <section class="block">
+      <div class="block-head">
+        <h2>The Vault</h2><span class="cnt" id="botsMeta">no data yet</span>
+        <div class="tools"><button class="btn" onclick="loadOverview()">Refresh</button></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h3>Connected clients</h3><p>from /api/overview</p></div>
+        <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Channel</th><th>Status</th><th>Hold</th><th>Last command</th><th class="n">Coins</th><th class="n">Inventory</th><th class="n">Net</th></tr></thead>
+          <tbody id="acctBody"></tbody>
+        </table>
+        </div>
+      </div>
+    </section>
   </section>
 
-  <section class="block" id="stream">
+  <section class="tabpanel" id="tab-commands" role="tabpanel">
+    <div class="block-head">
+      <h2>The Switchboard</h2><span class="cnt" id="enabledCount">–</span>
+      <div class="tools">
+        <input class="cmd-search" id="cmdFilter" type="search" placeholder="Filter commands" oninput="renderCommands()">
+        <button class="btn quiet" onclick="enableAll(true)">Enable all</button>
+        <button class="btn quiet" onclick="enableAll(false)">Disable all</button>
+        <button class="btn primary" onclick="saveSettings()">Save</button>
+        <button class="btn" onclick="applySettings()">Apply</button>
+      </div>
+    </div>
+    <div class="hint">Toggles flip each command globally · Save writes settings.json · Apply pushes it to running bots without restart.</div>
+    <div id="cmdGroups"></div>
+  </section>
+
+  <section class="tabpanel" id="tab-logs" role="tabpanel">
     <div class="block-head">
       <h2>The Stream</h2><span class="cnt" id="logCount">0 shown</span>
       <div class="tools">
@@ -422,47 +498,39 @@
     <div class="stream-foot"><span>newest at the bottom · 3s refresh</span><span class="mono">dank memer self-bot</span></div>
   </section>
 
-  <section class="block" id="board">
+  <section class="tabpanel" id="tab-settings" role="tabpanel">
     <div class="block-head">
-      <h2>The Switchboard</h2><span class="cnt" id="enabledCount">–</span><span class="cnt" id="cmdBdg" style="display:none"></span>
+      <h2>Global Switches</h2><span class="cnt" id="globalCount">–</span>
       <div class="tools">
-        <input class="cmd-search" id="cmdFilter" type="search" placeholder="Filter commands" oninput="renderCommands()">
-        <button class="btn quiet" onclick="enableAll(true)">Enable all</button>
-        <button class="btn quiet" onclick="enableAll(false)">Disable all</button>
         <button class="btn primary" onclick="saveSettings()">Save</button>
-        <button class="btn" onclick="reloadSettings()">Apply</button>
+        <button class="btn" onclick="applySettings()">Apply</button>
       </div>
     </div>
-    <div class="hint">Rotation runs in the normal loop · Onboarding-only runs only while the Onboarding cog has a pending objective · edits stage locally until Save.</div>
-    <div id="cmdGroups"></div>
+    <div class="hint">Every global flips settings.json · no raw JSON needed · Save writes the file, Apply pushes it to running bots.</div>
+    <div class="set-list" id="globalList"></div>
+    <div class="block-head" style="margin-top:22px"><h2 style="font-size:19px">Timings &amp; hooks</h2></div>
+    <div class="set-list" id="tuningList"></div>
   </section>
 
-  <section class="block" id="vault">
+  <section class="tabpanel" id="tab-accounts" role="tabpanel">
     <div class="block-head">
-      <h2>The Vault</h2><span class="cnt" id="botsMeta">no data yet</span>
-      <div class="tools"><button class="btn" onclick="loadOverview()">Refresh</button></div>
+      <h2>Accounts</h2><span class="cnt" id="accountsMeta">–</span>
+      <div class="tools"><button class="btn" onclick="loadAccounts()">Refresh</button></div>
     </div>
-    <div class="panel"><div class="panel-head"><h3>Connected clients</h3><p>from /api/overview</p></div>
+    <div class="hint">Adding writes tokens.txt straight away · new accounts start after a Restart.</div>
+    <div class="acct-add">
+      <input id="acctToken" type="password" placeholder="token" autocomplete="off" spellcheck="false">
+      <input id="acctChannel" type="text" placeholder="channel_id" inputmode="numeric" spellcheck="false">
+      <button class="btn primary" onclick="addAccount()">Add account</button>
+    </div>
+    <div class="panel"><div class="panel-head"><h3>tokens.txt</h3><p>tokens masked</p></div>
       <div class="tbl-scroll">
       <table>
-        <thead><tr><th>Channel</th><th>Status</th><th>Hold</th><th>Last command</th><th class="n">Coins</th><th class="n">Inventory</th><th class="n">Net</th></tr></thead>
-        <tbody id="acctBody"></tbody>
+        <thead><tr><th>Token</th><th>Channel</th><th style="text-align:right">Action</th></tr></thead>
+        <tbody id="acctList"></tbody>
       </table>
       </div>
     </div>
-  </section>
-
-  <section class="block" id="source">
-    <div class="block-head">
-      <h2>The Source</h2><span class="cnt">settings.json</span>
-      <div class="tools">
-        <button class="btn quiet" onclick="loadSettings(true)">Reload from file</button>
-        <button class="btn primary" onclick="saveSettings()">Save</button>
-        <button class="btn" onclick="reloadSettings()">Apply to bots</button>
-      </div>
-    </div>
-    <div class="hint">Save writes the file · Apply pushes it to running bots without restart.</div>
-    <textarea id="settingsEditor" spellcheck="false"></textarea>
   </section>
 
   <footer class="deck-foot"><span>The Pit · dank-automation</span><span class="mono">v1.5.2</span></footer>
@@ -472,6 +540,7 @@
 <script>
   let lastLogs = [], settingsData = null, cmdGroups = null;
   let seg = "important";
+  let activeTab = "overview";
   const $ = id => document.getElementById(id);
 
   function storedTheme() {
@@ -493,6 +562,14 @@
   try {
     matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (storedTheme() === "system") applyTheme(); });
   } catch (e) {}
+
+  function switchTab(name) {
+    activeTab = name;
+    document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+    document.querySelectorAll(".tabpanel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+    try { location.hash = name; } catch (e) {}
+    if (name === "logs") renderLogs();
+  }
 
   function esc(s) {
     return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -595,24 +672,17 @@
     paintStats(data);
   }
 
-  // Full settings.json (source of truth for Save). Fetched once; only an
-  // explicit Reload refetches so unsaved edits are never clobbered.
+  // settings.json is staged in memory; toggles mutate it, Save writes the
+  // file, Apply writes + pushes to running bots. No raw JSON editing.
   async function ensureSettings() {
     if (settingsData) return settingsData;
-    return loadSettings(false);
-  }
-  async function loadSettings(force) {
-    if (settingsData && !force) { syncEditor(); refreshCounts(); return settingsData; }
     try {
       settingsData = await (await fetch("/api/settings")).json();
-      syncEditor();
+      renderGlobals();
       refreshCounts();
       renderCommands();
     } catch (e) { toast("Could not load settings", true); }
     return settingsData;
-  }
-  function syncEditor() {
-    if (settingsData) $("settingsEditor").value = JSON.stringify(settingsData, null, 2);
   }
   async function ensureGroups() {
     if (cmdGroups) return cmdGroups;
@@ -630,6 +700,94 @@
       };
     }
     return cmdGroups;
+  }
+
+  function getPath(obj, path) {
+    let cur = obj;
+    for (const k of path) {
+      if (cur == null || typeof cur !== "object") return undefined;
+      cur = cur[k];
+    }
+    return cur;
+  }
+  function setPath(obj, path, value) {
+    let cur = obj;
+    for (let i = 0; i < path.length - 1; i++) {
+      if (cur[path[i]] == null || typeof cur[path[i]] !== "object") cur[path[i]] = {};
+      cur = cur[path[i]];
+    }
+    cur[path[path.length - 1]] = value;
+  }
+
+  // Every global boolean in settings.json gets a toggle row.
+  const GLOBAL_TOGGLES = [
+    { path: ["settings", "breaks"], title: "Breaks", sub: "scheduled rest windows between grind loops" },
+    { path: ["settings", "slashCommands"], title: "Slash commands", sub: "send /commands instead of pls prefix" },
+    { path: ["settings", "webhooklogging"], title: "Webhook logging", sub: "mirror log lines to webhookURL" },
+    { path: ["settings", "gambling", "enabled"], title: "Gambling", sub: "settings.gambling cointoss / slots / dice" },
+    { path: ["settings", "onboarding", "enabled"], title: "Onboarding", sub: "objective-driven new-account progression" },
+    { path: ["settings", "flow", "enabled"], title: "Flow mode", sub: "Dank Memer /flow driver instead of rotation" },
+  ];
+  const TUNING_FIELDS = [
+    { path: ["settings", "flow", "flow_name"], title: "Flow name", sub: "which /flow to drive", type: "text" },
+    { path: ["settings", "webhookURL"], title: "Webhook URL", sub: "needs webhook logging on", type: "text", mono: true },
+    { path: ["settings", "cooldowns", "minCommandDelay"], title: "Min command delay", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "maxCommandDelay"], title: "Max command delay", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "minButtonClickDelay"], title: "Min button delay", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "maxButtonClickDelay"], title: "Max button delay", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "minBreakCooldown"], title: "Min break cooldown", sub: "seconds between breaks", type: "number" },
+    { path: ["settings", "cooldowns", "maxBreakCooldown"], title: "Max break cooldown", sub: "seconds between breaks", type: "number" },
+    { path: ["settings", "cooldowns", "minBreakDuration"], title: "Min break length", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "maxBreakDuration"], title: "Max break length", sub: "seconds", type: "number" },
+  ];
+  function toggleRow(def) {
+    const key = def.path.join(".");
+    return `<div class="set-row" data-gkey="${esc(key)}">
+      <label class="sw" title="Toggle ${esc(def.title)}"><input type="checkbox" data-gtoggle="${esc(key)}" onchange="setGlobal('${esc(key)}',this.checked,this)"><span></span></label>
+      <div class="set-id"><h3>${esc(def.title)}</h3><p>${esc(def.sub)} · <span class="mono">${esc(key)}</span></p></div>
+    </div>`;
+  }
+  function renderGlobals() {
+    if (!settingsData) return;
+    $("globalList").innerHTML = GLOBAL_TOGGLES.map(toggleRow).join("");
+    $("tuningList").innerHTML = TUNING_FIELDS.map(f => {
+      const key = f.path.join(".");
+      const val = getPath(settingsData, f.path) ?? "";
+      const input = f.type === "number"
+        ? `<input type="number" step="any" value="${esc(val)}" onchange="setGlobalNum('${esc(key)}',this.value)">`
+        : `<input type="text" value="${esc(val)}" ${f.mono ? 'class="mono" style="font-family:ui-monospace,Menlo,monospace"' : ""} onchange="setGlobalText('${esc(key)}',this.value)">`;
+      return `<div class="set-row"><div class="set-id"><h3>${esc(f.title)}</h3><p>${esc(f.sub)} · <span class="mono">${esc(key)}</span></p></div><div class="frow">${input}</div></div>`;
+    }).join("");
+    for (const def of GLOBAL_TOGGLES) {
+      const key = def.path.join(".");
+      const on = !!getPath(settingsData, def.path);
+      document.querySelectorAll(`[data-gtoggle="${CSS.escape(key)}"]`).forEach(el => { el.checked = on; });
+      document.querySelectorAll(`[data-gkey="${CSS.escape(key)}"]`).forEach(el => el.classList.toggle("on", on));
+    }
+    refreshCounts();
+  }
+  function findDef(key) {
+    return GLOBAL_TOGGLES.find(d => d.path.join(".") === key) || TUNING_FIELDS.find(d => d.path.join(".") === key);
+  }
+  function setGlobal(key, on, el) {
+    const def = findDef(key);
+    if (!def || !settingsData) return;
+    setPath(settingsData, def.path, on);
+    const root = el && el.closest ? el.closest(".set-row") : null;
+    if (root) root.classList.toggle("on", on);
+    refreshCounts();
+  }
+  function setGlobalNum(key, raw) {
+    const def = findDef(key);
+    if (!def || !settingsData) return;
+    const v = Number(raw);
+    if (!Number.isFinite(v)) { toast("Must be a number", true); renderGlobals(); return; }
+    setPath(settingsData, def.path, v);
+  }
+  function setGlobalText(key, raw) {
+    const def = findDef(key);
+    if (!def || !settingsData) return;
+    setPath(settingsData, def.path, String(raw));
   }
 
   function cmdCard(name, c) {
@@ -680,22 +838,19 @@
     const bdg = $("cmdBdg");
     if (bdg) { bdg.textContent = n ? n + " on" : ""; bdg.style.display = n ? "" : "none"; }
     $("enabledCount").textContent = n + " of " + keys.length + " enabled";
-  }
-  // Field edits stage locally (no re-render, so focused inputs keep focus).
-  function stage() {
-    syncEditor();
-    refreshCounts();
+    const g = GLOBAL_TOGGLES.filter(d => !!getPath(settingsData, d.path)).length;
+    $("globalCount").textContent = g + " of " + GLOBAL_TOGGLES.length + " on";
   }
   function setField(name, field, value) {
     if (!settingsData?.commands?.[name]) return;
     settingsData.commands[name][field] = value;
-    stage();
+    refreshCounts();
   }
   function setNested(name, obj, field, value) {
     if (!settingsData?.commands?.[name]) return;
     settingsData.commands[name][obj] = settingsData.commands[name][obj] || {};
     settingsData.commands[name][obj][field] = value;
-    stage();
+    refreshCounts();
   }
   function setList(name, field, csv) {
     setField(name, field, csv.split(",").map(s => s.trim()).filter(Boolean));
@@ -710,38 +865,29 @@
     const st = root && root.querySelector ? root.querySelector(".st") : null;
     if (st) { st.textContent = on ? "on" : "off"; st.classList.toggle("on", on); }
     if (root) root.classList.toggle("on", on);
-    stage();
+    refreshCounts();
   }
   function enableAll(on) {
     if (!settingsData) return;
     for (const c of Object.values(settingsData.commands || {})) if (c) c.enabled = on;
-    syncEditor();
     renderCommands();
   }
   async function saveSettings() {
-    let parsed = settingsData;
-    const raw = $("settingsEditor").value;
-    if (raw.trim()) {
-      try { parsed = JSON.parse(raw); }
-      catch (e) { toast("Invalid JSON: " + e.message, true); return; }
-    }
+    if (!settingsData) return;
     const res = await fetch("/api/settings", {
       method: "PUT", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(parsed),
+      body: JSON.stringify(settingsData),
     });
-    if (res.ok) { settingsData = parsed; syncEditor(); refreshCounts(); renderCommands(); toast("Settings saved"); }
+    if (res.ok) toast("Settings saved");
     else toast("Save failed", true);
   }
-  async function reloadSettings() {
-    try {
-      const raw = $("settingsEditor").value;
-      if (raw.trim()) {
-        const parsed = JSON.parse(raw);
-        const putRes = await fetch("/api/settings", { method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(parsed) });
-        if (!putRes.ok) { toast("Save failed, not applied", true); return; }
-        settingsData = parsed;
-      }
-    } catch (e) { toast("Invalid JSON", true); return; }
+  async function applySettings() {
+    if (!settingsData) return;
+    const putRes = await fetch("/api/settings", {
+      method: "PUT", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(settingsData),
+    });
+    if (!putRes.ok) { toast("Save failed, not applied", true); return; }
     const res = await fetch("/api/settings/reload", { method: "POST" });
     if (!res.ok) {
       let msg = "Reload failed";
@@ -752,14 +898,86 @@
     toast(`Applied to ${(await res.json().catch(() => ({}))).reloaded_bots ?? "?"} bot(s)`);
   }
 
+  async function loadAccounts() {
+    let j;
+    try { j = await (await fetch("/api/accounts")).json(); }
+    catch (e) { toast("Could not load accounts", true); return; }
+    const accs = j.accounts || [];
+    $("acctList").innerHTML = accs.map(a => `<tr>
+        <td class="mono dim">****${esc(String(a.token_mask || "").slice(-4))}</td>
+        <td class="mono">${esc(a.channel_id)}</td>
+        <td style="text-align:right"><button class="btn quiet" onclick="removeAccount(${Number(a.index)})">Remove</button></td>
+      </tr>`).join("") || `<tr><td colspan="3"><div class="empty">No accounts yet. Add a token + channel above.</div></td></tr>`;
+    $("accountsMeta").textContent = accs.length ? accs.length + " saved" : "none yet";
+    const bdg = $("acctBdg");
+    if (bdg) { bdg.textContent = accs.length ? accs.length : ""; bdg.style.display = accs.length ? "" : "none"; }
+  }
+  async function addAccount() {
+    const token = ($("acctToken").value || "").trim();
+    const channel_id = ($("acctChannel").value || "").trim();
+    if (!token || !channel_id) { toast("Token and channel_id needed", true); return; }
+    const res = await fetch("/api/accounts", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ token, channel_id }),
+    });
+    if (res.ok) {
+      $("acctToken").value = ""; $("acctChannel").value = "";
+      await loadAccounts();
+      toast("Account added — Restart to start it");
+    } else {
+      let msg = "Add failed";
+      try { msg = (await res.json()).error || msg; } catch (e) { /* keep default */ }
+      toast(msg, true);
+    }
+  }
+  async function removeAccount(index) {
+    if (!confirm("Remove this account from tokens.txt? It stops after a Restart.")) return;
+    const res = await fetch("/api/accounts/" + Number(index), { method: "DELETE" });
+    if (res.ok) { await loadAccounts(); toast("Account removed — Restart to apply"); }
+    else toast("Remove failed", true);
+  }
+
+  async function restartBot() {
+    if (!confirm("Restart the entire bot? Grinding pauses for a few seconds.")) return;
+    const btn = $("restartBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Restarting…"; }
+    $("runStateText").textContent = "restarting…";
+    let res;
+    try { res = await fetch("/api/restart", { method: "POST" }); }
+    catch (e) { res = null; }
+    if (!res || !res.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = "Restart"; }
+      toast("Restart failed", true);
+      return;
+    }
+    toast("Restarting…");
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const o = await (await fetch("/api/overview")).json();
+        if (o && typeof o.uptime_s === "number" && o.uptime_s < 60) {
+          toast("Back online");
+          break;
+        }
+      } catch (e) { /* still down */ }
+    }
+    if (btn) { btn.disabled = false; btn.textContent = "Restart"; }
+    loadOverview();
+  }
+
   async function tick() {
     await Promise.all([loadOverview(), loadLogs()]);
   }
   (async function boot() {
     applyTheme();
+    try {
+      const h = (location.hash || "").replace("#", "");
+      if (["overview", "commands", "logs", "settings", "accounts"].includes(h)) switchTab(h);
+    } catch (e) {}
     await ensureSettings();
     await ensureGroups();
     renderCommands();
+    await loadAccounts();
     await tick();
     setInterval(tick, 3000);
   })();
