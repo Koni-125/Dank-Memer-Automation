@@ -5,6 +5,7 @@ import os
 import random
 import sys
 import threading
+import time
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
@@ -534,13 +535,27 @@ ____              _       __  __                              ____      _       
     custom_print(f"{Colors.lightcyan}Dashboard: http://127.0.0.1:3000", False)
 
     def _run_dashboard():
+        def _request_restart():
+            DASHBOARD_STATE.add_log("yellow", "restart requested from dashboard - restarting bot...")
+            def _do_exec():
+                try:
+                    time.sleep(0.6)
+                except Exception:
+                    pass
+                os.execv(
+                    sys.executable,
+                    [sys.executable, str(ROOT_DIR / "main.py"), *sys.argv[1:]],
+                )
+
+            threading.Thread(target=_do_exec, daemon=True).start()
+
         try:
             run_dashboard_server(
                 DASHBOARD_STATE,
                 ROOT_DIR / "settings.json",
                 ROOT_DIR,
-                host="127.0.0.1",
-                port=3000,
+                tokens_path=ROOT_DIR / "tokens.txt",
+                on_restart=_request_restart,
             )
         except Exception:
             logging.exception("Dashboard server thread crashed")

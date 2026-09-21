@@ -175,8 +175,38 @@ class DashboardState:
         }
 
 
-def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: Path):
+def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: Path,
+                            tokens_path: Path | None = None, on_restart=None):
     app = web.Application()
+    tokens_file = Path(tokens_path) if tokens_path is not None else Path(root_dir) / "tokens.txt"
+
+    def _read_token_lines():
+        try:
+            text = tokens_file.read_text(encoding="utf-8")
+        except OSError:
+            return None, "tokens file not found"
+        rows = []
+        for idx, raw in enumerate(text.splitlines()):
+            line = raw.strip()
+            if not line:
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            rows.append({"index": idx, "token": parts[0], "channel_id": parts[1]})
+        return rows, None
+
+    def _mask(token: str):
+        if len(token) <= 8:
+            return "****"
+        return f"{token[:4]}....{token[-4:]}"
+
+    def _write_token_lines(rows):
+        tmp_path = tokens_file.with_name(tokens_file.name + ".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            for r in rows:
+                f.write(f"{r['token']} {r['channel_id']}\n")
+        os.replace(tmp_path, tokens_file)
 
     async def index(_request):
         return web.FileResponse(root_dir / "dashboard" / "index.html")
@@ -251,6 +281,74 @@ def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: P
             }
         )
 
+    async def api_accounts_get(_request):
+        rows, error = _read_token_lines()
+        if rows is None:
+            return web.json_response({"ok": False, "error": error}, status=404)
+        return web.json_response(
+            {
+                "accounts": [
+                    {"index": r["index"], "channel_id": r["channel_id"],
+                     "token_mask": _mask(r["token"])}
+                    for r in rows
+                ]
+            }
+        )
+
+    async def api_accounts_post(request):
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"ok": False, "error": "invalid JSON"}, status=400)
+        token = str(body.get("token", "") or "").strip()
+        channel_id = str(body.get("channel_id", "") or "").strip()
+        if not token or any(ch.isspace() for ch in token):
+            return web.json_response({"ok": False, "error": "token must be a single non-empty value"}, status=400)
+        if not channel_id.isdigit():
+            return web.json_response({"ok": False, "error": "channel_id must be numeric"}, status=400)
+        rows, error = _read_token_lines()
+        if rows is None:
+            rows = []
+        for r in rows:
+            if r["channel_id"] == channel_id:
+                return web.json_response({"ok": False, "error": "channel already added"}, status=409)
+            if r["token"] == token:
+                return web.json_response({"ok": False, "error": "token already added"}, status=409)
+        rows.append({"index": len(rows), "token": token, "channel_id": channel_id})
+        try:
+            _write_token_lines(rows)
+        except OSError as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=500)
+        state.add_log("green", f"dashboard - account added for channel {channel_id}")
+        return web.json_response({"ok": True, "channel_id": channel_id})
+
+    async def api_accounts_delete(request):
+        try:
+            idx = int(request.match_info.get("index", "-1"))
+        except ValueError:
+            return web.json_response({"ok": False, "error": "bad index"}, status=400)
+        rows, error = _read_token_lines()
+        if rows is None:
+            return web.json_response({"ok": False, "error": error}, status=404)
+        kept = [r for r in rows if r["index"] != idx]
+        if len(kept) == len(rows):
+            return web.json_response({"ok": False, "error": "account not found"}, status=404)
+        try:
+            _write_token_lines(kept)
+        except OSError as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=500)
+        state.add_log("yellow", f"dashboard - account #{idx} removed")
+        return web.json_response({"ok": True})
+
+    async def api_restart(_request):
+        if on_restart is None:
+            return web.json_response({"ok": False, "error": "restart not available"}, status=501)
+        try:
+            on_restart()
+        except Exception as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=500)
+        return web.json_response({"ok": True})
+
     app.router.add_get("/", index)
     app.router.add_get("/api/overview", api_overview)
     app.router.add_get("/api/logs", api_logs)
@@ -258,9 +356,14 @@ def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: P
     app.router.add_put("/api/settings", api_settings_put)
     app.router.add_post("/api/settings/reload", api_settings_reload)
     app.router.add_get("/api/commands", api_commands)
+    app.router.add_get("/api/accounts", api_accounts_get)
+    app.router.add_post("/api/accounts", api_accounts_post)
+    app.router.add_delete("/api/accounts/{index}", api_accounts_delete)
+    app.router.add_post("/api/restart", api_restart)
     return app
 
 
-def run_dashboard_server(state: DashboardState, settings_path: Path, root_dir: Path, host="127.0.0.1", port=3000):
-    app = create_dashboard_app(state, settings_path, root_dir)
+def run_dashboard_server(state: DashboardState, settings_path: Path, root_dir: Path, host="127.0.0.1", port=3000,
+                         tokens_path: Path | None = None, on_restart=None):
+    app = create_dashboard_app(state, settings_path, root_dir, tokens_path, on_restart)
     web.run_app(app, host=host, port=port, handle_signals=False, print=None)
