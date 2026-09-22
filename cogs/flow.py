@@ -25,6 +25,18 @@ _STEP_TO_KEY = {"postmemes": "pm", "highlow": "hl"}
 _BACKOFF_S = 30
 _BACKOFF_TEXTS = ("already have a command in progress", "Too spicy", "Hold Tight")
 
+# Stuck-flow watchdog: the interaction API sometimes swallows a button
+# click with no error, so no MESSAGE_UPDATE arrives and an active flow
+# stalls forever. _WATCHDOG_S after the last flow-button click attempt
+# with no deliberate wait running, the driver re-pokes the last screen;
+# after _WATCHDOG_TRIPS pokes with nothing landing, it ends that flow
+# and starts a new one. Spacing keeps pokes >=2min apart; the counter
+# decays after _WATCHDOG_DECAY_S so old incidents never stack up.
+_WATCHDOG_S = 120
+_WATCHDOG_TRIPS = 3
+_WATCHDOG_SPACING_S = 120
+_WATCHDOG_DECAY_S = 600
+
 # Completion proof: whole-word phrases only. The old substring check
 # ("complet" in text) false-fired on postmemes' Discord result
 # ("To be completely honest, your meme was kinda mid."), Stop-clicking
@@ -51,6 +63,13 @@ class Flow(commands.Cog):
         self.bot = bot
         self.active = False
         self.last_flow_msg = 0
+        self.last_flow_msg_id = 0
+        # Watchdog feed: last flow-button click ATTEMPT (hook in
+        # MyClient.click_button stamps these). Attempt, not success --
+        # swallowed clicks report no error, so "tried" is the signal.
+        self.last_click_at = 0
+        self._watchdog_trips = 0
+        self._watchdog_last_at = 0
         self._skip_sightings = {}
         self._structure_logged = False
         # Breaks mirror the rotation loop's schedule so flow mode rests
@@ -600,6 +619,127 @@ class Flow(commands.Cog):
             return
         await self._nudge_stuck_skip(screen)
 
+    def note_flow_click(self):
+        # Stamped by the MyClient.click_button hook on every flow-button
+        # click attempt (flow cog + game cogs alike). Resets the watchdog:
+        # something moved, so the flow is not stalled.
+        self.last_click_at = time.time()
+        self._watchdog_trips = 0
+
+    # -- stuck-flow watchdog (each does one job) --------------------------
+
+    def _watchdog_due(self, now):
+        # Pure gate: True only while grinding (never on a break), the
+        # flow owned-and-active, and nothing clicked or deliberately
+        # waited on for a while. Cooldown parking and rate-limit
+        # backoff are quiet ON PURPOSE -- never mistake those for stuck.
+        try:
+            if not self.enabled() or not self.active:
+                return False
+        except Exception:
+            return False
+        if self._breaking or self._want_stop:
+            return False
+        try:
+            if not self.bot.state or self.bot.hold_command:
+                return False
+        except (AttributeError, TypeError):
+            return False
+        if not self.last_click_at or not self.last_flow_msg_id:
+            return False
+        if now - self.last_click_at < _WATCHDOG_S:
+            return False
+        if now - self._watchdog_last_at < _WATCHDOG_SPACING_S:
+            return False
+        if now < self._step_wait_until or now < self._backoff_until:
+            return False
+        return True
+
+    def _watchdog_rebuild_screen(self):
+        # Rebuild the last live screen from the gateway cache -- the same
+        # merge pipeline on_socket_raw_receive uses, so the object shape
+        # is exactly what _handle expects. No network fetch involved.
+        # Cache keys are raw string ids while message.id is int: try both.
+        try:
+            cache = getattr(self.bot, "_raw_message_cache", None) or {}
+            raw = cache.get(self.last_flow_msg_id)
+            if raw is None:
+                raw = cache.get(str(self.last_flow_msg_id))
+            if not raw:
+                return None
+            return components_v2.message.get_message_obj(raw)
+        except Exception:
+            return None
+
+    async def _watchdog_redispatch(self, message):
+        # Poke the stalled screen back through the normal dispatcher, as
+        # if Dank had re-sent the update: the flow stages AND the game
+        # cogs all see it again and can re-click. Any click that lands
+        # resets the trip counter via note_flow_click.
+        try:
+            await self.bot.message_dispatcher.dispatch_on_edit(message)
+            return True
+        except Exception as e:
+            self.bot.log(f"flow - watchdog redispatch failed: {e}", "red")
+            return False
+
+    async def _watchdog_restart(self):
+        # Give up on the stalled screen: Stop it if a Stop control is
+        # still there, forget it, and let the driver request a fresh
+        # /flow list (which starts a new flow) on its next tick.
+        try:
+            rebuilt = self._watchdog_rebuild_screen()
+            if rebuilt is not None:
+                screen = self._collect_screen(rebuilt)
+                stop = self._find_stop(screen["message"], screen["buttons"])
+                if stop is not None:
+                    await self.bot.click_button(stop)
+        except Exception:
+            pass
+        self.active = False
+        self.last_flow_msg = 0
+        self.last_flow_msg_id = 0
+        self._step_wait_until = 0
+        self._step_wait_key = None
+        self._watchdog_trips = 0
+        self.bot.log("flow - watchdog: ended stalled flow, starting a new one", "yellow")
+
+    async def _maybe_watchdog_recover(self):
+        # Called from the driver while the flow is active (never while
+        # stopping for / on a break). Re-pokes the last screen after
+        # _WATCHDOG_S of click silence; after _WATCHDOG_TRIPS pokes with
+        # nothing landing, ends that flow and starts a new one.
+        now = time.time()
+        if not self._watchdog_due(now):
+            return False
+        if now - self._watchdog_last_at > _WATCHDOG_DECAY_S:
+            self._watchdog_trips = 0
+        self._watchdog_trips += 1
+        self._watchdog_last_at = now
+        idle_s = int(now - self.last_click_at)
+        if self._watchdog_trips >= _WATCHDOG_TRIPS:
+            self.bot.log(
+                f"flow - watchdog: no click for {idle_s}s "
+                f"({_WATCHDOG_TRIPS} tries), restarting flow",
+                "yellow",
+            )
+            await self._watchdog_restart()
+            return True
+        rebuilt = self._watchdog_rebuild_screen()
+        if rebuilt is None:
+            self.bot.log(
+                "flow - watchdog: last screen gone from cache, restarting flow",
+                "yellow",
+            )
+            await self._watchdog_restart()
+            return True
+        self.bot.log(
+            f"flow - watchdog: no click for {idle_s}s, re-poking last screen",
+            "yellow",
+        )
+        await self._watchdog_redispatch(rebuilt)
+        return True
+
     async def _handle(self, message):
         # Thin orchestrator: gate, collect, then one stage at a time.
         # Each stage returns True when it handled the screen.
@@ -614,6 +754,10 @@ class Flow(commands.Cog):
                 )
             return
         self.last_flow_msg = time.time()
+        try:
+            self.last_flow_msg_id = int(getattr(screen["message"], "id", 0) or 0)
+        except (TypeError, ValueError):
+            pass
         self._refresh_step_wait(screen)
         if await self._handle_graceful_stop(screen):
             return
@@ -674,6 +818,13 @@ class Flow(commands.Cog):
             if self.bot.hold_command:
                 return
             if self._want_stop or self.active:
+                # Stuck-flow watchdog: a swallowed click raises no error
+                # and delivers no update, so _handle never re-fires and an
+                # active flow stalls forever (the 90s silence gate below
+                # only acts while idle). Never runs while stopping for or
+                # resting on a break -- _watchdog_due gates that.
+                if self.active and not self._want_stop:
+                    await self._maybe_watchdog_recover()
                 return
             if time.time() - self.last_flow_msg < 90:
                 return

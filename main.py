@@ -392,6 +392,19 @@ async def start_bot(token, channel_id):
                     self.channel,
                 )
                 self._connection._interaction_cache.move_to_end(nonce)
+                try:
+                    # Flow watchdog feed: stamp every flow-button click
+                    # ATTEMPT (the API can swallow clicks with no error,
+                    # so "tried" is the signal that matters). Non-flow
+                    # buttons (pets/craft/...) never stamp.
+                    if "flow-" in (getattr(button, "custom_id", None) or ""):
+                        _flow_cog = self.get_cog("Flow")
+                        if _flow_cog is not None and hasattr(
+                            _flow_cog, "note_flow_click"
+                        ):
+                            _flow_cog.note_flow_click()
+                except Exception:
+                    pass
                 return await button.click(
                     self.ws.session_id,
                     self.local_headers,
