@@ -322,6 +322,23 @@ class Flow(commands.Cog):
 
     # -- _handle stages (each does one job, True = handled, stop here) ----
 
+    def _on_break(self):
+        # Shared schedule rest in progress (getattr: old test bots may
+        # lack the flags main.py sets on real clients).
+        return bool(getattr(self.bot, "on_break", False))
+
+    def _break_requested(self):
+        # Scheduler asked flow to Stop for the scheduled rest.
+        return bool(getattr(self.bot, "break_requested", False))
+
+    def _begin_rest(self):
+        # Start the scheduled rest on the shared flags: clear the
+        # request, raise on_break. Callers drop the flow themselves.
+        # Both the Stop click and the no-screen fallback enter the
+        # rest through here so the flag dance lives in one place.
+        self.bot.break_requested = False
+        self.bot.on_break = True
+
     def _gate_message(self, message):
         # Channel + ownership + rest-state gates. False = ignore silently.
         try:
@@ -334,7 +351,7 @@ class Flow(commands.Cog):
         # Resting on the shared schedule: fully deaf. Ignored screens
         # must not refresh last_flow_msg, or the driver's 90s silence
         # gate delays the post-break /flow re-request.
-        if getattr(self.bot, "on_break", False):
+        if self._on_break():
             return False
         return True
 
@@ -388,22 +405,24 @@ class Flow(commands.Cog):
         # Stop is a section accessory (never in message.buttons), so use
         # _find_stop which checks both. Loud when missing so a stall is
         # visible instead of a mystery.
-        want_rest = bool(getattr(self.bot, "break_requested", False))
+        want_rest = self._break_requested()
         if not (self.active and (not self.enabled() or want_rest)):
             return False
         stop = self._find_stop(screen["message"], screen["buttons"])
         if stop is not None:
             if await self.bot.click_button(stop):
                 if want_rest:
-                    self.bot.break_requested = False
-                    self.bot.on_break = True
+                    self._begin_rest()
                     try:
-                        mins = int((self.bot.break_until - time.time()) // 60)
+                        remaining = self.bot.break_until - time.time()
                     except (TypeError, AttributeError):
-                        mins = 0
-                    self.bot.log(
-                        f"flow - stopped, resting ~{max(mins, 1)}m", "yellow"
+                        remaining = 0
+                    label = (
+                        f"{int(remaining // 60)}m"
+                        if remaining >= 60
+                        else f"{max(int(remaining), 1)}s"
                     )
+                    self.bot.log(f"flow - stopped, resting ~{label}", "yellow")
                 else:
                     self.bot.log("flow - stopped (mode disabled)", "yellow")
                 self.active = False
@@ -606,9 +625,7 @@ class Flow(commands.Cog):
                 return False
         except Exception:
             return False
-        if getattr(self.bot, "on_break", False) or getattr(
-            self.bot, "break_requested", False
-        ):
+        if self._on_break() or self._break_requested():
             return False
         try:
             if not self.bot.state or self.bot.hold_command:
@@ -736,7 +753,7 @@ class Flow(commands.Cog):
         # Stopping for the scheduled break: freeze everything except the
         # Stop click above. Advancing (Continue/Start/View) while trying
         # to stop just keeps the flow alive.
-        if getattr(self.bot, "break_requested", False):
+        if self._break_requested():
             return
         if await self._handle_backoff(screen):
             return
@@ -764,7 +781,7 @@ class Flow(commands.Cog):
             now = time.time()
             # Breaks are scheduled by commands.py on shared bot flags;
             # this driver only obeys them (it schedules nothing itself).
-            if getattr(self.bot, "on_break", False):
+            if self._on_break():
                 self._saw_break = True
                 return
             if self._saw_break:
@@ -777,24 +794,21 @@ class Flow(commands.Cog):
             # Asked to Stop for the scheduled break but no screen to
             # stop on: rest anyway rather than stalling the schedule;
             # the driver re-attaches with View after the rest.
-            if getattr(self.bot, "break_requested", False) and (
-                now - self.last_flow_msg > 300
-            ):
+            if self._break_requested() and (now - self.last_flow_msg > 300):
                 self.bot.log("flow - no screen to stop on, resting anyway", "yellow")
                 self.active = False
-                self.bot.break_requested = False
-                self.bot.on_break = True
+                self._begin_rest()
                 return
-            if getattr(self.bot, "break_requested", False) or self.active:
+            if self._break_requested() or self.active:
                 # Stuck-flow watchdog: a swallowed click raises no error
                 # and delivers no update, so _handle never re-fires and an
                 # active flow stalls forever (the 90s silence gate below
                 # only acts while idle). Never runs while stopping for or
                 # resting on a break -- _watchdog_due gates that.
-                if self.active and not getattr(self.bot, "break_requested", False):
+                if self.active and not self._break_requested():
                     await self._maybe_watchdog_recover()
                 return
-            if time.time() - self.last_flow_msg < 90:
+            if now - self.last_flow_msg < 90:
                 return
             if not self._structure_logged:
                 self._structure_logged = True

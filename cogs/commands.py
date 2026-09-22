@@ -73,6 +73,18 @@ def approximate_minimum_cooldown():
         return max(cooldowns_list[0], 1)
 
 
+def _fmt_break(seconds):
+    # Break log label: sub-minute rests show seconds ("30s"), longer
+    # ones minutes ("90m") -- "0m" for a 30s rest hid the real window.
+    try:
+        seconds = float(seconds)
+    except (TypeError, ValueError):
+        return "?m"
+    if seconds < 60:
+        return f"{max(int(seconds), 1)}s"
+    return f"{int(seconds // 60)}m"
+
+
 class Commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -131,6 +143,15 @@ class Commands(commands.Cog):
             self.min_break_cd, self.max_break_cd
         )
 
+    def _roll_break(self):
+        # Shared tail for both scheduler branches: roll the duration,
+        # stamp the window, log once. Callers differ only in who rests
+        # on it (flow via Stop, rotation right here).
+        duration = self.bot.random.uniform(self.min_break_dur, self.max_break_dur)
+        self.bot.break_until = time.time() + duration
+        self.bot.log(f"taking a break for {_fmt_break(duration)}...", "yellow")
+        return duration
+
     async def maybe_take_break(self):
         # THE break scheduler: the only place rests begin, and the only
         # place they end. Shared bot flags carry the state so the flow
@@ -157,18 +178,14 @@ class Commands(commands.Cog):
         if self._flow_is_active():
             # Flow owns the loop: ask it to Stop; it rests on the flags.
             # The reschedule happens when the rest ends (branch 1).
-            duration = self.bot.random.uniform(self.min_break_dur, self.max_break_dur)
-            self.bot.break_until = now + duration
+            self._roll_break()
             self.bot.break_requested = True
-            self.bot.log(f"taking a break for {int(duration // 60)}m...", "yellow")
             return
         # Rotation owns the loop (or a stale request no flow will ever
         # serve): rest right here, folding any stale request in.
-        duration = self.bot.random.uniform(self.min_break_dur, self.max_break_dur)
-        self.bot.break_until = now + duration
+        duration = self._roll_break()
         self.bot.break_requested = False
         self.bot.on_break = True
-        self.bot.log(f"taking a break for {int(duration // 60)}m...", "yellow")
         await asyncio.sleep(duration)
         self.bot.on_break = False
         self.bot.log("break over, resuming", "green")
