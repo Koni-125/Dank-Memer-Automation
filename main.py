@@ -144,6 +144,13 @@ async def start_bot(token, channel_id):
             self.hold_command = False
             self.state_event = asyncio.Event()
             # --
+            # Unified break system. commands.py is the ONLY scheduler (it
+            # decides when a rest begins/ends); flow.py only obeys these
+            # flags (Stops its flow, then rests on them). One schedule,
+            # shared here so both drivers see the same truth.
+            self.break_requested = False  # schedule fired; flow must Stop
+            self.on_break = False         # someone is resting right now
+            self.break_until = 0          # rest ends at this timestamp
 
             self.commands_dict = {
                 "trivia": "trivia",

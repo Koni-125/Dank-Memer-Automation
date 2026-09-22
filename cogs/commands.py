@@ -117,18 +117,62 @@ class Commands(commands.Cog):
         except (KeyError, TypeError):
             return False
 
-    async def maybe_take_break(self):
-        if not self.breaks_enabled:
-            return
-        if time.time() < self.next_break_at:
-            return
-        duration = self.bot.random.uniform(self.min_break_dur, self.max_break_dur)
-        self.bot.log(f"taking a break for {int(duration // 60)}m...", "yellow")
-        await asyncio.sleep(duration)
-        self.bot.log("break over, resuming commands", "green")
+    def _flow_is_active(self):
+        # Flow owns the loop only while it has a live flow running.
+        # Enabled-but-idle counts as rotation's: there is nothing to Stop.
+        try:
+            flow_cog = self.bot.get_cog("Flow")
+            return bool(flow_cog is not None and flow_cog.active)
+        except Exception:
+            return False
+
+    def _reschedule_break(self):
         self.next_break_at = time.time() + self.bot.random.uniform(
             self.min_break_cd, self.max_break_cd
         )
+
+    async def maybe_take_break(self):
+        # THE break scheduler: the only place rests begin, and the only
+        # place they end. Shared bot flags carry the state so the flow
+        # driver obeys the same schedule -- it Stops its flow, then rests
+        # on these flags instead of running a schedule of its own.
+        now = time.time()
+        # 1. End any ongoing rest -- always, even if breaks just got
+        # disabled, so a rest can never wedge the bot forever.
+        if self.bot.on_break:
+            if now >= self.bot.break_until:
+                self.bot.on_break = False
+                self.bot.log("break over, resuming", "green")
+                self._reschedule_break()
+            return
+        if not self.breaks_enabled:
+            # No new rests; a stale request dies with the toggle.
+            self.bot.break_requested = False
+            return
+        if self.bot.break_requested and self._flow_is_active():
+            # Flow will Stop on its next screen, then rest. Wait for it.
+            return
+        if not self.bot.break_requested and now < self.next_break_at:
+            return
+        if self._flow_is_active():
+            # Flow owns the loop: ask it to Stop; it rests on the flags.
+            # The reschedule happens when the rest ends (branch 1).
+            duration = self.bot.random.uniform(self.min_break_dur, self.max_break_dur)
+            self.bot.break_until = now + duration
+            self.bot.break_requested = True
+            self.bot.log(f"taking a break for {int(duration // 60)}m...", "yellow")
+            return
+        # Rotation owns the loop (or a stale request no flow will ever
+        # serve): rest right here, folding any stale request in.
+        duration = self.bot.random.uniform(self.min_break_dur, self.max_break_dur)
+        self.bot.break_until = now + duration
+        self.bot.break_requested = False
+        self.bot.on_break = True
+        self.bot.log(f"taking a break for {int(duration // 60)}m...", "yellow")
+        await asyncio.sleep(duration)
+        self.bot.on_break = False
+        self.bot.log("break over, resuming", "green")
+        self._reschedule_break()
 
     async def log_messages(self, message):
         if message.channel_id != self.bot.channel.id:
@@ -238,14 +282,24 @@ class Commands(commands.Cog):
                 await asyncio.sleep(1)
                 return
 
+            # THE break schedule ticks here -- above the flow gate -- so
+            # rests begin and end on one clock even while flow owns the
+            # loop (a flow-side rest would otherwise never be ended,
+            # wedging the bot on shared on_break forever).
+            await self.maybe_take_break()
+
+            # A rest owned by the other driver (flow side) pauses
+            # rotation too; the scheduler ends it, never the loop below.
+            if self.bot.on_break or self.bot.break_requested:
+                await asyncio.sleep(5)
+                return
+
             # Flow mode owns the loop: it clicks through /flow instead of
             # sending prefix commands, so this loop must NOT run with it.
             flow_cog = self.bot.get_cog("Flow")
             if flow_cog is not None and flow_cog.rotation_paused():
                 await asyncio.sleep(1)
                 return
-
-            await self.maybe_take_break()
 
             shuffled_commands = list(self.bot.commands_dict)[:]
             self.bot.random.shuffle(shuffled_commands)
