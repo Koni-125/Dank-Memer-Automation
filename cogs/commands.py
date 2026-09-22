@@ -1,8 +1,9 @@
 import asyncio
 import time
 
-from discord.ext import commands, tasks
+import components_v2
 
+from discord.ext import commands, tasks
 
 commands_min_cd = {
     # Edit this and add `minimum cooldown` of items as we add new commands
@@ -20,7 +21,11 @@ commands_min_cd = {
     "adventure": 60*30,
     "daily": 3600*12,
     "bal": 60,
-    "work": 60*30
+    "work": 60*30,
+    "stream": 60*10,
+    "pet": 60*30,
+    "scratch": 60*60*3,
+    "blackjack": 15,
 }
 
 
@@ -48,20 +53,36 @@ def find_least_gap(list_to_check):
 
 
 def approximate_minimum_cooldown():
-    cooldowns_list = list(commands_min_cd.values())
+    # A 0 value means "no cooldown" (e.g. deposit) and must not drag the
+    # computed resting period down to 0, or the command loop will never sleep
+    # between cycles and commands will overlap (triggering Dank Memer's
+    # "Hold Tight" response).
+    cooldowns_list = sorted(
+        cd for cd in commands_min_cd.values() if cd > 0
+    )
 
     if not cooldowns_list:
         # just in case
         return 1
 
-    # Sort in ascending order
-    cooldowns_list = sorted(cooldowns_list)
     result = find_least_gap(cooldowns_list)
 
     if result:
-        return min(result["diff"], min(cooldowns_list))
+        return max(min(result["diff"], cooldowns_list[0]), 1)
     else:
-        return cooldowns_list[0]
+        return max(cooldowns_list[0], 1)
+
+
+def _fmt_break(seconds):
+    # Break log label: sub-minute rests show seconds ("30s"), longer
+    # ones minutes ("90m") -- "0m" for a 30s rest hid the real window.
+    try:
+        seconds = float(seconds)
+    except (TypeError, ValueError):
+        return "?m"
+    if seconds < 60:
+        return f"{max(int(seconds), 1)}s"
+    return f"{int(seconds // 60)}m"
 
 
 class Commands(commands.Cog):
@@ -70,16 +91,181 @@ class Commands(commands.Cog):
         self.sleep_time = approximate_minimum_cooldown()
         self.minCommandCD = self.bot.settings_dict["settings"]["cooldowns"]["minCommandDelay"]
         self.maxCommandCD = self.bot.settings_dict["settings"]["cooldowns"]["maxCommandDelay"]
+        self.breaks_enabled = self.bot.settings_dict["settings"].get("breaks", False)
+        self.min_break_cd = self.bot.settings_dict["settings"]["cooldowns"].get("minBreakCooldown", 3600)
+        self.max_break_cd = self.bot.settings_dict["settings"]["cooldowns"].get("maxBreakCooldown", 10800)
+        self.min_break_dur = self.bot.settings_dict["settings"]["cooldowns"].get("minBreakDuration", 1800)
+        self.max_break_dur = self.bot.settings_dict["settings"]["cooldowns"].get("maxBreakDuration", 18000)
+        self.next_break_at = time.time() + self.bot.random.uniform(self.min_break_cd, self.max_break_cd)
+        self.bot.message_dispatcher.register(self.log_messages)
+
+    def refresh_settings(self):
+        # Re-read values cached at startup so dashboard Apply takes
+        # effect without a restart. Enabled/delay stay live through
+        # get_cooldown/should_run lookups.
+        try:
+            cooldowns = self.bot.settings_dict["settings"]["cooldowns"]
+        except (KeyError, TypeError, AttributeError):
+            return
+        try:
+            self.minCommandCD = cooldowns["minCommandDelay"]
+            self.maxCommandCD = cooldowns["maxCommandDelay"]
+        except (KeyError, TypeError):
+            pass
+        try:
+            self.breaks_enabled = self.bot.settings_dict["settings"].get("breaks", False)
+            self.min_break_cd = cooldowns.get("minBreakCooldown", 3600)
+            self.max_break_cd = cooldowns.get("maxBreakCooldown", 10800)
+            self.min_break_dur = cooldowns.get("minBreakDuration", 1800)
+            self.max_break_dur = cooldowns.get("maxBreakDuration", 18000)
+        except (AttributeError, TypeError):
+            pass
+
+    def onboarding_mode(self):
+        try:
+            return bool(
+                self.bot.settings_dict["settings"]["onboarding"]["enabled"]
+            )
+        except (KeyError, TypeError):
+            return False
+
+    def _flow_is_active(self):
+        # Flow owns the loop only while it has a live flow running.
+        # Enabled-but-idle counts as rotation's: there is nothing to Stop.
+        try:
+            flow_cog = self.bot.get_cog("Flow")
+            return bool(flow_cog is not None and flow_cog.active)
+        except Exception:
+            return False
+
+    def _reschedule_break(self):
+        self.next_break_at = time.time() + self.bot.random.uniform(
+            self.min_break_cd, self.max_break_cd
+        )
+
+    def _roll_break(self):
+        # Shared tail for both scheduler branches: roll the duration,
+        # stamp the window, log once. Callers differ only in who rests
+        # on it (flow via Stop, rotation right here).
+        duration = self.bot.random.uniform(self.min_break_dur, self.max_break_dur)
+        self.bot.break_until = time.time() + duration
+        self.bot.log(f"taking a break for {_fmt_break(duration)}...", "yellow")
+        return duration
+
+    async def maybe_take_break(self):
+        # THE break scheduler: the only place rests begin, and the only
+        # place they end. Shared bot flags carry the state so the flow
+        # driver obeys the same schedule -- it Stops its flow, then rests
+        # on these flags instead of running a schedule of its own.
+        now = time.time()
+        # 1. End any ongoing rest -- always, even if breaks just got
+        # disabled, so a rest can never wedge the bot forever.
+        if self.bot.on_break:
+            if now >= self.bot.break_until:
+                self.bot.on_break = False
+                self.bot.log("break over, resuming", "green")
+                self._reschedule_break()
+            return
+        if not self.breaks_enabled:
+            # No new rests; a stale request dies with the toggle.
+            self.bot.break_requested = False
+            return
+        if self.bot.break_requested and self._flow_is_active():
+            # Flow will Stop on its next screen, then rest. Wait for it.
+            return
+        if not self.bot.break_requested and now < self.next_break_at:
+            return
+        if self._flow_is_active():
+            # Flow owns the loop: ask it to Stop; it rests on the flags.
+            # The reschedule happens when the rest ends (branch 1).
+            self._roll_break()
+            self.bot.break_requested = True
+            return
+        # Rotation owns the loop (or a stale request no flow will ever
+        # serve): rest right here, folding any stale request in.
+        duration = self._roll_break()
+        self.bot.break_requested = False
+        self.bot.on_break = True
+        await asyncio.sleep(duration)
+        self.bot.on_break = False
+        self.bot.log("break over, resuming", "green")
+        self._reschedule_break()
+
+    async def log_messages(self, message):
+        if message.channel_id != self.bot.channel.id:
+            return
+
+        texts = components_v2.message.text_display_contents(message)
+
+        # Onboarding mode is driven by the Onboarding cog. If a locked
+        # ("not unlocked yet") message arrives while we're running, hand
+        # control over to it by enabling onboarding mode; its loop takes over
+        # and ours pauses at the top of commands_handler.
+        if any(
+            "You have not unlocked this feature yet!" in text for text in texts
+        ):
+            onboarding = self.bot.get_cog("Onboarding")
+            if onboarding is not None:
+                onboarding._set_enabled(True)
+            return
+
+        if any(
+            "You already have a command in progress" in text
+            or "Too spicy" in text
+            for text in texts
+        ):
+            self._backoff(message)
+
+    def _backoff(self, message):
+        # Previous command still running, or a rate-limit/cooldown notice.
+        replied = ""
+        # Legacy dpy message: referenced_message. v2 dispatcher object:
+        # message.reference.resolved (SimpleNamespace, id + author only).
+        # Support both shapes.
+        ref_msg = getattr(message, "referenced_message", None)
+        if ref_msg is not None:
+            replied = ref_msg.content or ""
+        else:
+            ref = getattr(message, "reference", None)
+            resolved = getattr(ref, "resolved", None)
+            cmd_id = getattr(resolved, "id", None) if resolved is not None else None
+            if cmd_id is not None and getattr(self.bot, "channel", None) is not None:
+                try:
+                    cmd_msg = self.bot.channel.get_partial_message(cmd_id)
+                    replied = getattr(cmd_msg, "content", "") or ""
+                except (AttributeError, TypeError):
+                    replied = ""
+        command = self._find_command(replied)
+        if command is None:
+            return
+        # Don't retry this command until its cooldown elapses.
+        backoff = self.get_cooldown(command)
+        self.bot.last_ran[command] = time.time() + max(backoff, 30)
+        self.bot.log(
+            f"'{command}' not ready yet (command in progress / cooldown). "
+            f"Backing off ~{max(backoff, 30)}s.",
+            "yellow",
+        )
+
+    def _find_command(self, content):
+        for name, trigger in self.bot.commands_dict.items():
+            if content and f"pls {trigger}" in content:
+                return name
+        return None
 
     async def cog_load(self):
-        print(f"starting..., approx min {self.sleep_time}")
+        self.bot.log(f"starting..., approx min {self.sleep_time}", "green")
         self.commands_handler.start()
 
     def get_cooldown(self, command_name):
-        # User may sometimes put cooldown below minimum cooldowns,
-        # Guard against that.
-        cd = self.bot.settings_dict["commands"][command_name]["delay"]
-        min_cd = commands_min_cd[command_name]
+        # User may put cooldown below minimum configured in settings;
+        # guard against unknown commands too (KeyError outside inner try
+        # in commands_handler trips the outer handler).
+        try:
+            cd = self.bot.settings_dict["commands"][command_name]["delay"]
+        except (KeyError, TypeError):
+            return 60
+        min_cd = commands_min_cd.get(command_name, 0)
         return cd if cd >= min_cd else min_cd
 
     def should_run(self, command_name):
@@ -101,28 +287,69 @@ class Commands(commands.Cog):
 
     @tasks.loop()
     async def commands_handler(self):
-        if not self.bot.state:
-            await asyncio.sleep(0.5)
-            return
+        try:
+            if not self.bot.state:
+                await asyncio.sleep(0.5)
+                return
 
-        shuffled_commands = list(self.bot.commands_dict)[:]
-        self.bot.random.shuffle(shuffled_commands)
+            # Onboarding mode is active: the Onboarding cog is running the
+            # account through the onboarding levels, so this loop must NOT
+            # run. Pause here and only resume once onboarding completes.
+            if self.onboarding_mode():
+                await asyncio.sleep(1)
+                return
 
-        for command in shuffled_commands:
-            await asyncio.sleep(self.bot.random.uniform(self.minCommandCD, self.maxCommandCD))
-            if not self.should_run(command):
-                continue
-            self.bot.last_ran[command] = time.time()
-            if command == "dep_all":
-                await self.bot.send_cmd(f"{self.bot.commands_dict[command]} all")
-                continue
-            if command == "fish":
-                await self.bot.send_cmd(f"{self.bot.commands_dict[command]} catch")
-                continue
-            await self.bot.send_cmd(self.bot.commands_dict[command])
-            continue
+            # THE break schedule ticks here -- above the flow gate -- so
+            # rests begin and end on one clock even while flow owns the
+            # loop (a flow-side rest would otherwise never be ended,
+            # wedging the bot on shared on_break forever).
+            await self.maybe_take_break()
 
-        await asyncio.sleep(self.sleep_time)
+            # A rest owned by the other driver (flow side) pauses
+            # rotation too; the scheduler ends it, never the loop below.
+            if self.bot.on_break or self.bot.break_requested:
+                await asyncio.sleep(5)
+                return
+
+            # Flow mode owns the loop: it clicks through /flow instead of
+            # sending prefix commands, so this loop must NOT run with it.
+            flow_cog = self.bot.get_cog("Flow")
+            if flow_cog is not None and flow_cog.rotation_paused():
+                await asyncio.sleep(1)
+                return
+
+            shuffled_commands = list(self.bot.commands_dict)[:]
+            self.bot.random.shuffle(shuffled_commands)
+
+            for command in shuffled_commands:
+                await asyncio.sleep(self.bot.random.uniform(self.minCommandCD, self.maxCommandCD))
+                if not self.should_run(command):
+                    continue
+                self.bot.last_ran[command] = time.time()
+                try:
+                    if command == "dep_all":
+                        await self.bot.send_cmd(f"{self.bot.commands_dict[command]} all")
+                        continue
+                    if command == "fish":
+                        await self.bot.send_cmd(f"{self.bot.commands_dict[command]} catch")
+                        continue
+                    if command == "blackjack":
+                        bj_cog = self.bot.get_cog("Blackjack")
+                        if bj_cog is not None:
+                            bet = bj_cog.current_bet()
+                        else:
+                            bet = self.bot.settings_dict["commands"]["blackjack"].get("bet", 5000)
+                        await self.bot.send_cmd(f"{self.bot.commands_dict[command]} {bet}")
+                        continue
+                    await self.bot.send_cmd(self.bot.commands_dict[command])
+                except Exception as e:
+                    self.bot.log(f"Failed to run '{command}': {e}", "red")
+                    continue
+
+            await asyncio.sleep(self.sleep_time)
+        except Exception as e:
+            self.bot.log(f"commands_handler error: {e}", "red")
+            await asyncio.sleep(5)
 
 
 async def setup(bot):

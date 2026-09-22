@@ -1,4 +1,4 @@
-import asyncio
+import components_v2
 
 from discord.ext import commands
 
@@ -7,9 +7,27 @@ class Tidy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot.message_dispatcher.register(self.log_messages)
+        # Flow steps arrive as MESSAGE_UPDATE on the flow message.
+        self.bot.message_dispatcher.register(self.log_messages, edit=True)
 
         tidy_config = self.bot.settings_dict["commands"]["tidy"]
         preferred_tool = tidy_config.get("tools", tidy_config.get("tool"))
+        if isinstance(preferred_tool, str):
+            self.priority = [preferred_tool.lower()]
+        elif isinstance(preferred_tool, list):
+            self.priority = [
+                item.lower() for item in preferred_tool if isinstance(item, str)
+            ]
+        else:
+            self.priority = ["hand"]
+
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-derive cached tool.
+        try:
+            tidy_config = self.bot.settings_dict["commands"]["tidy"]
+            preferred_tool = tidy_config.get("tools", tidy_config.get("tool"))
+        except (KeyError, TypeError, AttributeError):
+            return
         if isinstance(preferred_tool, str):
             self.priority = [preferred_tool.lower()]
         elif isinstance(preferred_tool, list):
@@ -23,19 +41,10 @@ class Tidy(commands.Cog):
         if message.channel_id != self.bot.channel.id:
             return
 
-        if not message.components:
-            return
-
-        prompt_found = False
-        for component in message.components:
-            if component.component_name == "text_display":
-                if (
-                    isinstance(component.content, str)
-                    and "Pick what to tidy up with." in component.content
-                ):
-                    prompt_found = True
-                    break
-        if not prompt_found:
+        if not any(
+            "Pick what to tidy up with." in text
+            for text in components_v2.message.text_display_contents(message)
+        ):
             return
 
         valid_buttons = []
@@ -70,21 +79,10 @@ class Tidy(commands.Cog):
         if button is None:
             return
 
-        await self.bot.set_command_hold_stat(True)
-        try:
-            await asyncio.sleep(self.bot.random.uniform(0.3, 0.5))
-            stat = await button.click(
-                self.bot.ws.session_id,
-                self.bot.local_headers,
-                str(self.bot.channel.guild.id),
-            )
-            if stat:
-                self.bot.log(f"tidy - clicked {button.label}", "green")
-            else:
-                self.bot.log(f"tidy - failed clicking {button.label}", "red")
-        finally:
-            if self.bot.hold_command:
-                await self.bot.set_command_hold_stat(False)
+        if await self.bot.click_button(button):
+            self.bot.log(f"tidy - clicked {button.label}", "green")
+        else:
+            self.bot.log(f"tidy click failed ({button.label})", "red")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -92,8 +90,8 @@ class Tidy(commands.Cog):
             return
 
         prompt_found = False
-        if message.embeds and message.embeds[0].description:
-            if "Pick what to tidy up with." in message.embeds[0].description:
+        if message.embeds and (message.embeds[0].description or ""):
+            if "Pick what to tidy up with." in (message.embeds[0].description or ""):
                 prompt_found = True
         if not prompt_found:
             return
@@ -134,7 +132,11 @@ class Tidy(commands.Cog):
         if button is None:
             return
 
-        await button.click()
+        try:
+            await button.click()
+        except Exception as e:
+            self.bot.log(f"tidy click failed (legacy): {e}", "red")
+            return
         self.bot.log(f"tidy - clicked {button.label}", "green")
 
 

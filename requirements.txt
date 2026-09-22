@@ -5,6 +5,7 @@ blinker==1.9.0
 certifi==2026.1.4
 charset-normalizer==3.4.4
 click==8.3.1
+curl_cffi==0.16.0
 discord-protos==0.0.2
 discord.py-self @ git+https://github.com/dolfies/discord.py-self
 frozenlist==1.8.0

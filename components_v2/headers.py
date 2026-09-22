@@ -1,9 +1,12 @@
 import json
 import base64
+import logging
 import uuid
 import re
 from datetime import datetime
 import aiohttp
+
+logger = logging.getLogger(__name__)
 
 
 async def extract_asset_files(session: aiohttp.ClientSession, headers):
@@ -119,7 +122,7 @@ async def generate_headers() -> dict:
             pass
 
         if not props:
-            print("dolfies failed...\n")
+            logger.warning("dolfies failed, falling back to local properties")
             bv = await get_browser_version(session)
             bn = await get_build_number(session)
             props = generate_properties(bn, bv)

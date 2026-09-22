@@ -102,6 +102,7 @@ Desktop.ini
 
 # Logs
 *.log
+logs/
 
 # dotenv
 .env
@@ -124,4 +125,5 @@ Desktop.ini
 tokens.txt
 cogs/__pycache__
 components_v2/__pycache__
-components_v2/__pycache__/
+components_v2/__pycache__/tokens.txt
+tokens.txt

@@ -1,4 +1,4 @@
-import random
+import components_v2
 
 from discord.ext import commands
 
@@ -12,24 +12,98 @@ class Crime(commands.Cog):
         self.priority = crime_config["priority"]
         self.second_priority = crime_config["second_priority"]
         self.avoid = crime_config["avoid"]
+        self.bot.message_dispatcher.register(self.log_messages)
+        self.bot.message_dispatcher.register(self.log_messages_edit, edit=True)
+
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-point cached lists.
+        try:
+            cfg = self.bot.settings_dict["commands"]["crime"]
+            self.priority = cfg["priority"]
+            self.second_priority = cfg["second_priority"]
+            self.avoid = cfg["avoid"]
+        except (KeyError, TypeError):
+            pass
+
+    def _pick(self, buttons):
+        # buttons: list of clickable v2 accessory buttons.
+        shuffled = list(buttons)
+        self.bot.random.shuffle(shuffled)
+        for button in shuffled:
+            if (button.label or "").lower() in self.priority:
+                return button
+        for button in shuffled:
+            if (button.label or "").lower() in self.second_priority:
+                return button
+        for button in shuffled:
+            if (button.label or "").lower() not in self.avoid:
+                return button
+        return None
+
+    async def _handle(self, message):
+        # Components_v2 crime prompt (container + text_display + buttons).
+        if message.channel_id != self.bot.channel.id:
+            return
+
+        texts = components_v2.message.text_display_contents(message)
+        # Timeout edit ("Too scared to commit a crime huh?") carries no
+        # prompt, so check it BEFORE the prompt gate.
+        if any("Too scared" in t for t in texts):
+            return
+        if not any("What crime do you want to commit?" in t for t in texts):
+            return
+
+        clickable = [b for b in message.buttons if not b.disabled]
+        if not clickable:
+            return
+        button = self._pick(clickable)
+        if button is None:
+            return
+        if await self.bot.click_button(button):
+            self.bot.log(f"crime - clicked {button.label}", "green")
+        else:
+            self.bot.log(f"crime click failed ({button.label})", "red")
+
+    async def log_messages(self, message):
+        await self._handle(message)
+
+    async def log_messages_edit(self, message):
+        await self._handle(message)
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        # Legacy embeds fallback (kept in case Dank Memer sends v1).
         if message.embeds:
-            if "What crime do you want to commit?" in message.embeds[0].description:
-                children = list(enumerate(message.components[0].children))
-                random.shuffle(children)
+            desc = message.embeds[0].description or ""
+            if "What crime do you want to commit?" in desc:
+                try:
+                    children = list(enumerate(message.components[0].children))
+                except (IndexError, AttributeError, TypeError):
+                    return
+                self.bot.random.shuffle(children)
                 for count, button in children:
-                    if button.label.lower() in self.priority:
-                        await self.bot.click(message, 0, count)
+                    if (button.label or "").lower() in self.priority and not getattr(
+                        button, "disabled", False
+                    ):
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("crime click failed (legacy)", "red")
                         return
                 for count, button in children:
-                    if button.label.lower() in self.second_priority:
-                        await self.bot.click(message, 0, count)
+                    if (button.label or "").lower() in self.second_priority and not getattr(
+                        button, "disabled", False
+                    ):
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("crime click failed (legacy)", "red")
                         return
                 for count, button in children:
-                    if button.label.lower() not in self.avoid:
-                        await self.bot.click(message, 0, count)
+                    if (button.label or "").lower() not in self.avoid and not getattr(
+                        button, "disabled", False
+                    ):
+                        if await self.bot.click(message, 0, count):
+                            return
+                        self.bot.log("crime click failed (legacy)", "red")
                         return
 
 

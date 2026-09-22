@@ -1,12 +1,12 @@
 {
     "commands": {
         "trivia": {
-            "enabled": false,
+            "enabled": true,
             "delay": 10,
             "trivia_correct_chance": 0.75
         },
         "dig": {
-            "enabled": false,
+            "enabled": true,
             "delay": 30
         },
         "fish": {
@@ -19,7 +19,7 @@
             "delay": 30
         },
         "hunt": {
-            "enabled": false,
+            "enabled": true,
             "delay": 30
         },
         "tidy": {
@@ -28,27 +28,27 @@
             "tool": "vacuum"
         },
         "pm": {
-            "enabled": false,
+            "enabled": true,
             "delay": 20
         },
         "beg": {
-            "enabled": false,
+            "enabled": true,
             "delay": 40
         },
         "pet": {
-            "enabled": false,
+            "enabled": true,
             "delay": 1800
         },
         "scratch": {
-            "enabled": false,
+            "enabled": true,
             "delay": 10800
         },
         "hl": {
-            "enabled": false,
+            "enabled": true,
             "delay": 20
         },
         "search": {
-            "enabled": false,
+            "enabled": true,
             "delay": 20,
             "priority": [
                 "phoenix pits",
@@ -92,7 +92,7 @@
             "delay": 30
         },
         "stream": {
-            "enabled": false,
+            "enabled": true,
             "delay": 660,
             "order": [
                 1,
@@ -100,6 +100,14 @@
                 1,
                 1,
                 1,
+                0,
+                0,
+                0,
+                2,
+                2,
+                2
+            ],
+            "onboarding_order": [
                 0,
                 0,
                 0,
@@ -117,7 +125,7 @@
             "delay": 86400
         },
         "crime": {
-            "enabled": false,
+            "enabled": true,
             "delay": 40,
             "priority": [
                 "hacking",
@@ -137,9 +145,162 @@
             ]
         },
         "adventure": {
-            "enabled": false,
+            "enabled": true,
             "delay": 1800,
             "adventure": "west"
+        },
+        "inventory": {
+            "enabled": false,
+            "delay": 60
+        },
+        "sell": {
+            "enabled": false,
+            "delay": 30
+        },
+        "buy": {
+            "enabled": false,
+            "delay": 300
+        },
+        "cointoss": {
+            "enabled": false,
+            "delay": 30
+        },
+        "slots": {
+            "enabled": false,
+            "delay": 30
+        },
+        "snakeeyes": {
+            "enabled": false,
+            "delay": 30
+        },
+        "roulette": {
+            "enabled": false,
+            "delay": 30
+        },
+        "blackjack": {
+            "enabled": false,
+            "delay": 15,
+            "bet": 5000,
+            "card_counting": true
+        },
+        "use": {
+            "enabled": false,
+            "delay": 60
+        },
+        "item": {
+            "enabled": false,
+            "delay": 60
+        },
+        "help": {
+            "enabled": false,
+            "delay": 60
+        },
+        "title": {
+            "enabled": false,
+            "delay": 60
+        },
+        "profile": {
+            "enabled": false,
+            "delay": 60
+        },
+        "multipliers": {
+            "enabled": false,
+            "delay": 60
+        },
+        "giveaway": {
+            "enabled": false,
+            "delay": 60
+        },
+        "craft": {
+            "enabled": false,
+            "delay": 60
+        },
+        "farm": {
+            "enabled": false,
+            "delay": 60
+        },
+        "quests": {
+            "enabled": false,
+            "delay": 60
+        },
+        "currencylog": {
+            "enabled": false,
+            "delay": 60
+        },
+        "notifications": {
+            "enabled": false,
+            "delay": 60
+        },
+        "lottery": {
+            "enabled": false,
+            "delay": 60
+        },
+        "settings": {
+            "enabled": false,
+            "delay": 60
+        },
+        "advancements": {
+            "enabled": false,
+            "delay": 60
+        },
+        "achievements": {
+            "enabled": false,
+            "delay": 60
+        },
+        "badges": {
+            "enabled": false,
+            "delay": 60
+        },
+        "collection": {
+            "enabled": false,
+            "delay": 60
+        },
+        "leaderboard": {
+            "enabled": false,
+            "delay": 60
+        },
+        "skins": {
+            "enabled": false,
+            "delay": 60
+        },
+        "play": {
+            "enabled": false,
+            "delay": 60
+        },
+        "market post": {
+            "enabled": false,
+            "delay": 60
+        },
+        "market view": {
+            "enabled": false,
+            "delay": 60
+        },
+        "market": {
+            "enabled": false,
+            "delay": 60,
+            "post_item": "Cookie",
+            "post_price": 25000,
+            "post_days": 1
+        },
+        "pets": {
+            "enabled": false,
+            "delay": 60
+        },
+        "pets view": {
+            "enabled": false,
+            "delay": 60
+        },
+        "pets care": {
+            "enabled": false,
+            "delay": 60
+        },
+        "pets rooms": {
+            "enabled": false,
+            "delay": 60
+        },
+        "use cheese": {
+            "enabled": false,
+            "delay": 60
         }
     },
     "settings": {
@@ -155,6 +316,17 @@
         },
         "webhooklogging": false,
         "webhookURL": "",
-        "breaks": true
+        "breaks": true,
+        "gambling": {
+            "enabled": false
+        },
+        "onboarding": {
+            "enabled": false
+        },
+        "flow": {
+            "enabled": false,
+            "flow_name": "Basic Grinding"
+        },
+        "slashCommands": false
     }
 }

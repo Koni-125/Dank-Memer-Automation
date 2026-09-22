@@ -1,5 +1,8 @@
 from curl_cffi.requests import AsyncSession
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 
 
 def generate_nonce() -> str:
@@ -184,8 +187,10 @@ class select_menu:
                 )
 
                 if resp.status_code != 204:
-                    print(
-                        f"Component selection failed ({resp.status_code}): {resp.text}"
+                    logger.warning(
+                        "Component selection failed (%s): %s",
+                        resp.status_code,
+                        resp.text,
                     )
                     return False
 
@@ -298,7 +303,7 @@ class accessory:
         else:
             self.is_clickable_button = False
 
-    async def click(self, session, headers, guild_id):
+    async def click(self, session, headers, guild_id, nonce=None):
         if self.is_clickable_button:
             if (
                 self._message_channel_id
@@ -306,10 +311,11 @@ class accessory:
                 and self._message_flag
                 and self._author_id
             ):
-                # 145.0.0.0
+                from discord.utils import _generate_nonce
+
                 req_json = {
                     "type": 3,
-                    # "nonce": generate_nonce(),
+                    "nonce": nonce or _generate_nonce(),
                     "application_id": str(self._author_id),
                     "guild_id": str(guild_id),
                     "channel_id": str(self._message_channel_id),
@@ -331,6 +337,7 @@ class accessory:
 
                     return True
         else:
-            print(
-                f"Code attempted to click on a button... but not a clickable button  -> {self.custom_id}"
+            logger.warning(
+                "Code attempted to click on a button... but not a clickable button  -> %s",
+                self.custom_id,
             )

@@ -1,8 +1,11 @@
+import copy
 import json
+import os
 import re
 import threading
 import time
 from collections import deque
+from datetime import datetime
 from pathlib import Path
 
 from aiohttp import web
@@ -11,12 +14,104 @@ from aiohttp import web
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 
+def validate_settings(incoming):
+    # Structural guard so a valid-JSON but wrong-shape save cannot brick
+    # the running bots (they index settings["commands"][name] directly).
+    if not isinstance(incoming, dict):
+        return "top-level JSON must be an object"
+    commands = incoming.get("commands")
+    if not isinstance(commands, dict) or not commands:
+        return "'commands' must be a non-empty object"
+    for name, cfg in commands.items():
+        if not isinstance(cfg, dict):
+            return f"command '{name}' must be an object"
+        if "enabled" in cfg and not isinstance(cfg["enabled"], bool):
+            return f"command '{name}.enabled' must be a boolean"
+        if "delay" in cfg and not isinstance(cfg["delay"], (int, float)):
+            return f"command '{name}.delay' must be a number"
+    settings = incoming.get("settings")
+    if not isinstance(settings, dict):
+        return "'settings' must be an object"
+    return None
+
+
+def refresh_bot_settings(bot, fresh):
+    # Each bot gets its own copy so account-specific mutations (e.g.
+    # onboarding locks) don't leak across accounts. Cogs that cached
+    # config at startup re-read it via refresh_settings().
+    bot.settings_dict = copy.deepcopy(fresh)
+    cogs = []
+    try:
+        mapping = getattr(bot, "cogs", None)
+        if isinstance(mapping, dict):
+            cogs = list(mapping.values())
+        elif mapping is not None:
+            cogs = list(mapping)
+    except Exception:
+        cogs = []
+    if not cogs:
+        get_cog = getattr(bot, "get_cog", None)
+        if callable(get_cog):
+            for name in (
+                "Commands", "Search", "Crime", "Tidy", "Trivia",
+                "Stream", "Onboarding", "Adventure", "Fish", "Blackjack",
+            ):
+                try:
+                    cog = get_cog(name)
+                except Exception:
+                    cog = None
+                if cog is not None:
+                    cogs.append(cog)
+    for cog in cogs:
+        fn = getattr(cog, "refresh_settings", None)
+        if callable(fn):
+            try:
+                fn()
+            except Exception:
+                pass
+
+# Commands driven by the normal rotation loop (main.py commands_dict keys).
+ROTATION_COMMANDS = [
+    "trivia", "dig", "fish", "hunt", "pm", "beg", "pet", "scratch",
+    "hl", "search", "tidy", "dep_all", "stream", "work", "daily",
+    "crime", "bal", "adventure", "blackjack",
+]
+
+try:
+    from cogs.onboarding import onboarding_commands as _ONBOARDING_COMMANDS
+
+    ONBOARDING_COMMAND_KEYS = list(_ONBOARDING_COMMANDS.keys())
+except Exception:
+    ONBOARDING_COMMAND_KEYS = [
+        "beg", "search", "tidy", "inventory", "bal", "hunt", "dig",
+        "work", "sell", "buy", "cointoss", "slots", "snakeeyes",
+        "roulette", "blackjack", "use cheese", "item", "title",
+        "profile", "daily", "hl", "multipliers", "crime", "giveaway",
+        "craft", "farm", "quests", "pm", "currencylog",
+        "notifications", "lottery", "dep_all", "settings",
+        "advancements", "achievements", "badges", "collection",
+        "leaderboard", "skins", "play", "fish", "pets", "pets view",
+        "pets care", "pets rooms", "help",
+    ]
+
+
 class DashboardState:
-    def __init__(self):
+    def __init__(self, log_dir=None):
         self.started_at = time.time()
         self._bots = []
         self._logs = deque(maxlen=1200)
         self._lock = threading.Lock()
+        self._log_dir = Path(log_dir) if log_dir is not None else None
+        if self._log_dir is not None:
+            try:
+                self._log_dir.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                pass
+
+    def _bot_log_path(self):
+        # Daily-rotated bot/debug log, e.g. logs/bot-2026-09-14.log
+        day = datetime.now().strftime("%Y-%m-%d")
+        return self._log_dir / f"bot-{day}.log"
 
     def register_bot(self, bot):
         with self._lock:
@@ -38,6 +133,16 @@ class DashboardState:
                     "message": clean,
                 }
             )
+        # Persist bot/debug logs to logs/bot-YYYY-MM-DD.log (best effort).
+        if self._log_dir is not None:
+            try:
+                with open(self._bot_log_path(), "a", encoding="utf-8") as f:
+                    f.write(
+                        f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] "
+                        f"{level.upper().ljust(8)} | {clean}\n"
+                    )
+            except OSError:
+                pass
 
     def snapshot(self):
         with self._lock:
@@ -70,8 +175,38 @@ class DashboardState:
         }
 
 
-def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: Path):
+def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: Path,
+                            tokens_path: Path | None = None, on_restart=None):
     app = web.Application()
+    tokens_file = Path(tokens_path) if tokens_path is not None else Path(root_dir) / "tokens.txt"
+
+    def _read_token_lines():
+        try:
+            text = tokens_file.read_text(encoding="utf-8")
+        except OSError:
+            return None, "tokens file not found"
+        rows = []
+        for idx, raw in enumerate(text.splitlines()):
+            line = raw.strip()
+            if not line:
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            rows.append({"index": idx, "token": parts[0], "channel_id": parts[1]})
+        return rows, None
+
+    def _mask(token: str):
+        if len(token) <= 8:
+            return "****"
+        return f"{token[:4]}....{token[-4:]}"
+
+    def _write_token_lines(rows):
+        tmp_path = tokens_file.with_name(tokens_file.name + ".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            for r in rows:
+                f.write(f"{r['token']} {r['channel_id']}\n")
+        os.replace(tmp_path, tokens_file)
 
     async def index(_request):
         return web.FileResponse(root_dir / "dashboard" / "index.html")
@@ -80,7 +215,11 @@ def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: P
         return web.json_response(state.snapshot())
 
     async def api_logs(request):
-        limit = int(request.query.get("limit", "200"))
+        try:
+            limit = int(request.query.get("limit", "200"))
+        except ValueError:
+            limit = 200
+        limit = max(1, min(limit, 1200))
         snap = state.snapshot()
         return web.json_response({"logs": snap["logs"][-limit:]})
 
@@ -90,19 +229,125 @@ def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: P
         return web.json_response(data)
 
     async def api_settings_put(request):
-        incoming = await request.json()
-        with open(settings_path, "w", encoding="utf-8") as f:
+        try:
+            incoming = await request.json()
+        except Exception:
+            return web.json_response({"ok": False, "error": "invalid JSON"}, status=400)
+        error = validate_settings(incoming)
+        if error is not None:
+            return web.json_response({"ok": False, "error": error}, status=400)
+        # Atomic write: a crash mid-save must not leave a truncated file.
+        tmp_path = settings_path.with_name(settings_path.name + ".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(incoming, f, indent=4)
+        os.replace(tmp_path, settings_path)
         return web.json_response({"ok": True})
 
     async def api_settings_reload(_request):
-        with open(settings_path, "r", encoding="utf-8") as f:
-            fresh = json.load(f)
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                fresh = json.load(f)
+        except (OSError, ValueError) as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=400)
+        error = validate_settings(fresh)
+        if error is not None:
+            return web.json_response({"ok": False, "error": error}, status=400)
         with state._lock:
             bots = list(state._bots)
         for bot in bots:
-            bot.settings_dict = fresh
+            try:
+                refresh_bot_settings(bot, fresh)
+            except Exception:
+                continue
         return web.json_response({"ok": True, "reloaded_bots": len(bots)})
+
+    async def api_commands(_request):
+        with open(settings_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        cmds = data.get("commands", {}) or {}
+        rotation = [k for k in ROTATION_COMMANDS if k in cmds]
+        # Onboarding-only = known onboarding keys not in the normal rotation.
+        onboarding_only = [k for k in ONBOARDING_COMMAND_KEYS if k in cmds and k not in ROTATION_COMMANDS]
+        # Anything else in settings.json that is neither (future-proofing).
+        other = [k for k in cmds if k not in ROTATION_COMMANDS and k not in ONBOARDING_COMMAND_KEYS]
+        return web.json_response(
+            {
+                "commands": cmds,
+                "groups": {
+                    "rotation": rotation,
+                    "onboarding_only": onboarding_only,
+                    "other": other,
+                },
+            }
+        )
+
+    async def api_accounts_get(_request):
+        rows, error = _read_token_lines()
+        if rows is None:
+            return web.json_response({"ok": False, "error": error}, status=404)
+        return web.json_response(
+            {
+                "accounts": [
+                    {"index": r["index"], "channel_id": r["channel_id"],
+                     "token_mask": _mask(r["token"])}
+                    for r in rows
+                ]
+            }
+        )
+
+    async def api_accounts_post(request):
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"ok": False, "error": "invalid JSON"}, status=400)
+        token = str(body.get("token", "") or "").strip()
+        channel_id = str(body.get("channel_id", "") or "").strip()
+        if not token or any(ch.isspace() for ch in token):
+            return web.json_response({"ok": False, "error": "token must be a single non-empty value"}, status=400)
+        if not channel_id.isdigit():
+            return web.json_response({"ok": False, "error": "channel_id must be numeric"}, status=400)
+        rows, error = _read_token_lines()
+        if rows is None:
+            rows = []
+        for r in rows:
+            if r["channel_id"] == channel_id:
+                return web.json_response({"ok": False, "error": "channel already added"}, status=409)
+            if r["token"] == token:
+                return web.json_response({"ok": False, "error": "token already added"}, status=409)
+        rows.append({"index": len(rows), "token": token, "channel_id": channel_id})
+        try:
+            _write_token_lines(rows)
+        except OSError as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=500)
+        state.add_log("green", f"dashboard - account added for channel {channel_id}")
+        return web.json_response({"ok": True, "channel_id": channel_id})
+
+    async def api_accounts_delete(request):
+        try:
+            idx = int(request.match_info.get("index", "-1"))
+        except ValueError:
+            return web.json_response({"ok": False, "error": "bad index"}, status=400)
+        rows, error = _read_token_lines()
+        if rows is None:
+            return web.json_response({"ok": False, "error": error}, status=404)
+        kept = [r for r in rows if r["index"] != idx]
+        if len(kept) == len(rows):
+            return web.json_response({"ok": False, "error": "account not found"}, status=404)
+        try:
+            _write_token_lines(kept)
+        except OSError as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=500)
+        state.add_log("yellow", f"dashboard - account #{idx} removed")
+        return web.json_response({"ok": True})
+
+    async def api_restart(_request):
+        if on_restart is None:
+            return web.json_response({"ok": False, "error": "restart not available"}, status=501)
+        try:
+            on_restart()
+        except Exception as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=500)
+        return web.json_response({"ok": True})
 
     app.router.add_get("/", index)
     app.router.add_get("/api/overview", api_overview)
@@ -110,9 +355,15 @@ def create_dashboard_app(state: DashboardState, settings_path: Path, root_dir: P
     app.router.add_get("/api/settings", api_settings_get)
     app.router.add_put("/api/settings", api_settings_put)
     app.router.add_post("/api/settings/reload", api_settings_reload)
+    app.router.add_get("/api/commands", api_commands)
+    app.router.add_get("/api/accounts", api_accounts_get)
+    app.router.add_post("/api/accounts", api_accounts_post)
+    app.router.add_delete("/api/accounts/{index}", api_accounts_delete)
+    app.router.add_post("/api/restart", api_restart)
     return app
 
 
-def run_dashboard_server(state: DashboardState, settings_path: Path, root_dir: Path, host="127.0.0.1", port=3000):
-    app = create_dashboard_app(state, settings_path, root_dir)
+def run_dashboard_server(state: DashboardState, settings_path: Path, root_dir: Path, host="127.0.0.1", port=3000,
+                         tokens_path: Path | None = None, on_restart=None):
+    app = create_dashboard_app(state, settings_path, root_dir, tokens_path, on_restart)
     web.run_app(app, host=host, port=port, handle_signals=False, print=None)

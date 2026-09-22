@@ -1,13 +1,17 @@
 import asyncio
 import json
+import logging
 import os
 import random
 import sys
 import threading
+import time
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 import discord.errors
+from discord import SlashCommand
 from discord.ext import commands
 
 import components_v2
@@ -15,13 +19,31 @@ import components_v2
 from utils.custom_logger import CustomLogger
 from utils.dashboard_server import DashboardState, run_dashboard_server
 
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        TimedRotatingFileHandler(
+            LOG_DIR / "app.log",
+            when="midnight",
+            backupCount=14,
+            encoding="utf-8",
+        ),
+    ],
+)
+
 
 def get_config():
     try:
         with open("settings.json", "r") as config_file:
             return json.load(config_file)
     except FileNotFoundError:
-        print("ERROR - whoops, no settings file found!")
+        logging.error("ERROR - whoops, no settings file found!")
+        return None
 
 
 def resource_path(relative_path):
@@ -56,31 +78,16 @@ class Colors:
     reset = "\033[0m"
 
 
-DASHBOARD_STATE = DashboardState()
+DASHBOARD_STATE = DashboardState(LOG_DIR)
 ROOT_DIR = Path(__file__).resolve().parent
 
 
 def custom_print(message, time=True):
     DASHBOARD_STATE.add_log("info", message)
     if not time:
-        print(f"\r{message}", end="\n> ")
+        print(f"{message}")
     else:
-        print(f"\r[{datetime.now().strftime('%H:%M:%S')}] {message}", end="\n> ")
-
-
-def handle_user_input():
-    while True:
-        user_input = input().encode("utf-8", errors="ignore").decode("utf-8")
-
-        if user_input == "help":
-            custom_print(f"{Colors.orange}quit:{Colors.reset} Stop the code")
-        elif user_input == "quit":
-            custom_print(f"{Colors.yellow}stopping code...{Colors.reset}")
-            os._exit(0)
-        else:
-            custom_print(
-                f'{Colors.red}Unknown command. Type "help" for a list of commands{Colors.reset}'
-            )
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
 
 
 class MessageDispatcher:
@@ -137,6 +144,13 @@ async def start_bot(token, channel_id):
             self.hold_command = False
             self.state_event = asyncio.Event()
             # --
+            # Unified break system. commands.py is the ONLY scheduler (it
+            # decides when a rest begins/ends); flow.py only obeys these
+            # flags (Stops its flow, then rests on them). One schedule,
+            # shared here so both drivers see the same truth.
+            self.break_requested = False  # schedule fired; flow must Stop
+            self.on_break = False         # someone is resting right now
+            self.break_until = 0          # rest ends at this timestamp
 
             self.commands_dict = {
                 "trivia": "trivia",
@@ -156,7 +170,8 @@ async def start_bot(token, channel_id):
                 "daily": "daily",
                 "crime": "crime",
                 "bal": "balance",
-                "adventure": "adventure"
+                "adventure": "adventure",
+                "blackjack": "blackjack"
             }
             self.last_ran = {}
             # discord.py-self's module sets global random to fixed seed. reset that, locally.
@@ -164,24 +179,130 @@ async def start_bot(token, channel_id):
 
             for command in self.commands_dict:
                 self.last_ran[command] = 0
+            # Cache of full raw payloads by message id. MESSAGE_UPDATE
+            # events are partial (changed fields only), so edits are merged
+            # over the cached CREATE payload to keep authorship/channel
+            # context for recipient filtering.
+            self._raw_message_cache = {}
 
-        async def send_cmd(self, content):
-            if self.state:
-                # send text based command
-                await self.channel.send(f"pls {content}")
-                self.log(f"Sent: pls {content}", "green")
+        async def send_cmd(self, content, **kwargs):
+            if not self.state:
+                return
+            command = content.split()
+            try:
+                slash_mode = self.settings_dict["settings"].get("slashCommands", False)
+            except (KeyError, TypeError, AttributeError):
+                slash_mode = False
+
+            # While onboarding is running, every command must be a slash
+            # command so onboarding objectives that track slash usage count.
+            onboarding = self.get_cog("Onboarding")
+            if onboarding is not None and onboarding.enabled():
+                slash_mode = True
+
+            if slash_mode:
+                await self.send_slash(command, **kwargs)
+            else:
+                await self.channel.send(f"pls {' '.join(command)}")
+                self.log(f"Sent: pls {' '.join(command)}", "green")
                 self.sent_command_count += 1
-                self.last_sent_command = f"pls {content}"
+                self.last_sent_command = f"pls {' '.join(command)}"
+
+        async def send_slash(self, command, **kwargs):
+            # command is the split tokens (e.g. ["cointoss", "50000"]).
+            if not self.state or not command:
+                return
+            try:
+                commands = await self.channel.application_commands()
+            except discord.errors.Forbidden:
+                return
+            except Exception as e:
+                self.log(f"Error fetching commands: {e}", "red")
+                await self.channel.send(f"pls {' '.join(command)}")
+                return
+
+            name = command[0]
+            target = None
+            for cmd in commands:
+                if (
+                    cmd.application.id != 270904126974590976
+                    or not isinstance(cmd, SlashCommand)
+                ):
+                    continue
+                cn = cmd.name.lower()
+                if cn == name.lower():
+                    target = cmd
+                    break
+                if cn.startswith(name.lower()):
+                    target = cmd
+                    break
+            if target is None:
+                for cmd in commands:
+                    if (
+                        cmd.application.id != 270904126974590976
+                        or not isinstance(cmd, SlashCommand)
+                    ):
+                        continue
+                    if name.lower() in cmd.name.lower():
+                        target = cmd
+                        break
+            if target is None:
+                self.log(f"Slash command not found: {name}", "red")
+                return
+
+            # Walk down subcommands (e.g. shop sell, title set, multipliers luck).
+            node = target
+            i = 1
+            while i < len(command) and node.children:
+                child = next(
+                    (c for c in node.children if c.name.lower() == command[i].lower()),
+                    None,
+                )
+                if child is None:
+                    break
+                node = child
+                i += 1
+
+            if node.is_group():
+                self.log(f"Slash group cannot be invoked: {' '.join(command)}", "red")
+                return
+
+            # Remaining tokens become option values, filled positionally by
+            # the command's declared option names (e.g. bet, item, title).
+            for idx, tok in enumerate(command[i:]):
+                if idx < len(node.options):
+                    kwargs.setdefault(node.options[idx].name, tok)
+
+            try:
+                await node(channel=self.channel, **kwargs)
+                self.log(f"Sent: /{' '.join(command)}", "green")
+                self.sent_command_count += 1
+                self.last_sent_command = f"/{' '.join(command)}"
+            except (
+                discord.errors.Forbidden,
+                discord.errors.DiscordServerError,
+                discord.errors.InvalidData,
+                KeyError,
+            ) as e:
+                self.log(
+                    f"Error: Command Unsuccessful\n{type(e).__name__}: {e}",
+                    "red",
+                )
 
         async def set_command_hold_stat(self, value):
             if value:
                 self.hold_command = True
                 self.state_event.set()
             else:
-                while not self.hold_command:
-                    await self.state_event.wait()
                 self.hold_command = False
                 self.state_event.clear()
+                self.state_event.set()
+                await asyncio.sleep(0)
+
+        async def wait_until_command_released(self):
+            while self.hold_command:
+                await self.state_event.wait()
+                await asyncio.sleep(0.05)
 
         async def is_valid_command(self, message, command) -> bool: #unused for now
             if message.channel.id != self.channel_id or message.author.id != 270904126974590976:
@@ -190,7 +311,7 @@ async def start_bot(token, channel_id):
             if not self.settings_dict["settings"]["slashCommandMode"]:
                 if message.reference is not None:
                     if message.reference.resolved is not None:
-                        if message.reference.resolved.content != f'pls {command}' and message.reference.resolved.author != self.bot.user.id:
+                        if message.reference.resolved.content != f'pls {command}' and message.reference.resolved.author.id != self.bot.user.id:
                             return False
             else:
                 if self.settings_dict["settings"]["flowMode"]:
@@ -214,32 +335,27 @@ async def start_bot(token, channel_id):
             try:
                 await asyncio.sleep(wait_time)
                 await message.components[component].children[children].click()
+                return True
             except (discord.errors.HTTPException, discord.errors.InvalidData) as e:
-                print("\n--- [DISCORD API ERROR] ---")
-                
-                # 1. Get the HTTP Status (e.g., 400, 401, 403, 429)
                 status = getattr(e, 'status', 'Unknown Status')
-                
-                # 2. Get the Discord Internal Error Code (e.g., 50035)
                 code = getattr(e, 'code', 'No Error Code')
-                
-                # 3. Get the raw text/message from the API
-                # Most dpy-self errors have a .text or .message attribute
                 error_msg = getattr(e, 'text', str(e))
-                
-                print(f"Status: {status}")
-                print(f"Discord Code: {code}")
-                print(f"Details: {error_msg}")
-                
-                # 4. Check for common self-bot failures
+
+                lines = [
+                    "--- [DISCORD API ERROR] ---",
+                    f"Status: {status}",
+                    f"Discord Code: {code}",
+                    f"Details: {error_msg}",
+                ]
                 if status == 429:
-                    print("CRITICAL: You are being rate limited. Increase your asyncio.sleep() times.")
+                    lines.append("CRITICAL: You are being rate limited. Increase your asyncio.sleep() times.")
                 elif status == 400:
-                    print("FAILED: Invalid Interaction. Likely the custom_id expired or the message is too old.")
+                    lines.append("FAILED: Invalid Interaction. Likely the custom_id expired or the message is too old.")
                 elif status == 403:
-                    print("FAILED: Forbidden. Check if the message is ephemeral or if you lack permissions.")
-                    
-                print("---------------------------\n")
+                    lines.append("FAILED: Forbidden. Check if the message is ephemeral or if you lack permissions.")
+                lines.append("---------------------------")
+                self.log("\n".join(lines), "red")
+                return False
             finally:
                 if self.hold_command:
                     await self.set_command_hold_stat(False)
@@ -260,6 +376,54 @@ async def start_bot(token, channel_id):
             except (discord.errors.HTTPException, discord.errors.InvalidData):
                 pass
 
+        async def click_button(self, button, delay=None):
+            # Click a components_v2 button (custom accessory) using the raw
+            # interaction API. Used by dispatcher (custom message) handlers.
+            # A nonce is registered with dpy so follow-up modal events (e.g.
+            # pet rename) are dispatched to wait_for("modal").
+            cooldowns = self.settings_dict["settings"]["cooldowns"]
+            wait_time = delay if delay is not None else self.random.uniform(
+                cooldowns["minButtonClickDelay"],
+                cooldowns["maxButtonClickDelay"],
+            )
+
+            await self.set_command_hold_stat(True)
+            try:
+                await asyncio.sleep(wait_time)
+                from discord.utils import _generate_nonce
+
+                nonce = _generate_nonce()
+                self._connection._interaction_cache[nonce] = (
+                    3,  # InteractionType.component
+                    None,
+                    self.channel,
+                )
+                self._connection._interaction_cache.move_to_end(nonce)
+                try:
+                    # Flow watchdog feed: stamp every flow-button click
+                    # ATTEMPT (the API can swallow clicks with no error,
+                    # so "tried" is the signal that matters). Non-flow
+                    # buttons (pets/craft/...) never stamp.
+                    if "flow-" in (getattr(button, "custom_id", None) or ""):
+                        _flow_cog = self.get_cog("Flow")
+                        if _flow_cog is not None and hasattr(
+                            _flow_cog, "note_flow_click"
+                        ):
+                            _flow_cog.note_flow_click()
+                except Exception:
+                    pass
+                return await button.click(
+                    self.ws.session_id,
+                    self.local_headers,
+                    str(self.channel.guild.id),
+                    nonce=nonce,
+                )
+            except (discord.errors.HTTPException, discord.errors.InvalidData, AttributeError):
+                return False
+            finally:
+                if self.hold_command:
+                    await self.set_command_hold_stat(False)
+
         async def setup_hook(self):
             # self.update.start()
             self.settings_dict = get_config()
@@ -268,10 +432,15 @@ async def start_bot(token, channel_id):
             # self.log = log
             self.channel = await self.fetch_channel(self.channel_id)
 
-            for filename in os.listdir(resource_path("./cogs")):
-                if filename.endswith(".py"):
-                    # print(f'{filename[:-3]}')
+            for filename in sorted(os.listdir(resource_path("./cogs"))):
+                if not filename.endswith(".py"):
+                    continue
+                if filename.startswith("__"):
+                    continue
+                try:
                     await self.load_extension(f"cogs.{filename[:-3]}")
+                except Exception as e:
+                    self.log(f"Failed to load cog {filename}: {e}", "red")
             self.local_headers = await components_v2.headers.generate_headers()
             self.local_headers["Authorization"] = self.token
             self.log(f"Logged in as {self.user}", "green")
@@ -288,10 +457,48 @@ async def start_bot(token, channel_id):
             if parsed_msg.get("t") not in ["MESSAGE_CREATE", "MESSAGE_UPDATE"]:
                 return
 
-            message = components_v2.message.get_message_obj(parsed_msg["d"])
+            # Raw-gateway dump for debugging/inspection. Daily-rotated:
+            # logs/raw-YYYY-MM-DD.log
+            try:
+                day = datetime.now().strftime("%Y-%m-%d")
+                with open(
+                    LOG_DIR / f"raw-{day}.log", "a", encoding="utf-8"
+                ) as _f:
+                    _f.write(json.dumps(parsed_msg) + "\n")
+            except OSError:
+                pass
+
+            message = None
+            try:
+                raw_d = parsed_msg["d"] if isinstance(parsed_msg.get("d"), dict) else {}
+                msg_id = raw_d.get("id")
+                if parsed_msg["t"] == "MESSAGE_CREATE":
+                    if msg_id is not None:
+                        self._raw_message_cache[msg_id] = raw_d
+                        if len(self._raw_message_cache) > 1000:
+                            self._raw_message_cache.pop(
+                                next(iter(self._raw_message_cache))
+                            )
+                    merged_d = raw_d
+                else:
+                    base = (
+                        self._raw_message_cache.get(msg_id, {})
+                        if msg_id is not None
+                        else {}
+                    )
+                    merged_d = {**base, **raw_d}
+                    if msg_id is not None:
+                        self._raw_message_cache[msg_id] = merged_d
+                message = components_v2.message.get_message_obj(merged_d)
+            except Exception:
+                return
 
             if not components_v2.message.is_message_for_user(message, self.user.id):
-                return
+                # Flow-fired results reference the flow, not our "pls"
+                # sends; let the Flow cog admit them while a flow runs.
+                _flow_cog = self.get_cog("Flow")
+                if _flow_cog is None or not _flow_cog.should_accept(message):
+                    return
 
             if message.channel.id != self.channel_id:
                 return
@@ -314,7 +521,7 @@ async def start_bot(token, channel_id):
         client.log("Invalid channel", "red")
         await client.close()
     except Exception as e:
-        print(e)
+        logging.exception("Bot error: %s", e)
     finally:
         DASHBOARD_STATE.unregister_bot(client)
 
@@ -322,7 +529,12 @@ async def start_bot(token, channel_id):
 # Create and start the event loop in a separate thread
 def start_event_loop(event_loop):
     asyncio.set_event_loop(event_loop)
-    event_loop.run_forever()
+    try:
+        event_loop.run_forever()
+    except BaseException:
+        logging.exception("Fatal error in bot event loop thread")
+    finally:
+        logging.warning("Bot event loop thread exited")
 
 
 loop = asyncio.new_event_loop()
@@ -330,29 +542,45 @@ t = threading.Thread(target=start_event_loop, args=(loop,))
 t.start()
 
 if __name__ == "__main__":
-    # Start the user_input_thread
-    user_input_thread = threading.Thread(target=handle_user_input)
-    user_input_thread.start()
-
     # Print header and version information
     header = r"""
 ____              _       __  __                              ____      _           _
 |  _ \  __ _ _ __ | | __  |  \/  | ___ _ __ ___   ___ _ __    / ___|_ __(_)_ __   __| | ___ _ __
 | | | |/ _` | '_ \| |/ /  | |\/| |/ _ \ '_ ` _ \ / _ \ '__|  | |  _| '__| | '_ \ / _` |/ _ \ '__|
-| |_| | (_| | | | |   <   | |  | |  __/ | | | | |  __/ |     | |_| | |  | | | | | (_| |  __/ |
+| |_| | (_| | | | |   <   | |  |  | __/ | | | | |  __/ |     | |_| | |  | | | | | (_| |  __/ |
 |____/ \__,_|_| |_|_|\_\  |_|  |_|\___|_| |_| |_|\___|_|      \____|_|  |_|_| |_|\__,_|\___|_|
     """
     custom_print(header, False)
     custom_print(f"{Colors.lavender}v1.5.2", False)
-    custom_print(f'{Colors.lightcyan}Type "help" for a list of commands', False)
     custom_print(f"{Colors.lightcyan}Dashboard: http://127.0.0.1:3000", False)
 
-    dashboard_thread = threading.Thread(
-        target=run_dashboard_server,
-        args=(DASHBOARD_STATE, ROOT_DIR / "settings.json", ROOT_DIR),
-        kwargs={"host": "127.0.0.1", "port": 3000},
-        daemon=True,
-    )
+    def _run_dashboard():
+        def _request_restart():
+            DASHBOARD_STATE.add_log("yellow", "restart requested from dashboard - restarting bot...")
+            def _do_exec():
+                try:
+                    time.sleep(0.6)
+                except Exception:
+                    pass
+                os.execv(
+                    sys.executable,
+                    [sys.executable, str(ROOT_DIR / "main.py"), *sys.argv[1:]],
+                )
+
+            threading.Thread(target=_do_exec, daemon=True).start()
+
+        try:
+            run_dashboard_server(
+                DASHBOARD_STATE,
+                ROOT_DIR / "settings.json",
+                ROOT_DIR,
+                tokens_path=ROOT_DIR / "tokens.txt",
+                on_restart=_request_restart,
+            )
+        except Exception:
+            logging.exception("Dashboard server thread crashed")
+
+    dashboard_thread = threading.Thread(target=_run_dashboard, daemon=True)
     dashboard_thread.start()
 
     # Check for updates
@@ -368,15 +596,15 @@ ____              _       __  __                              ____      _       
 
     futures = []
 
-    for item in tokens_and_channels:
-        future = asyncio.run_coroutine_threadsafe(start_bot(item[0], item[1]), loop)
-        futures.append((item, future))
-
-    # surface exceptions from the event loop thread
-    for item, future in futures:
+    def log_future_exception(future):
         try:
             future.result()
         except Exception as e:
-            print(f"Bot {item} crashed:", e)
+            logging.exception("Bot crashed: %s", e)
+
+    for item in tokens_and_channels:
+        future = asyncio.run_coroutine_threadsafe(start_bot(item[0], item[1]), loop)
+        future.add_done_callback(log_future_exception)
+        futures.append(future)
 
     t.join()

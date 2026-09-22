@@ -22,6 +22,15 @@ class Adventure(commands.Cog):
         self.bot = bot
         self.adventure = self.bot.settings_dict["commands"]["adventure"]["adventure"]
 
+    def refresh_settings(self):
+        # Dashboard Apply replaces settings_dict; re-read cached choice.
+        try:
+            self.adventure = self.bot.settings_dict["commands"]["adventure"][
+                "adventure"
+            ]
+        except (KeyError, TypeError):
+            pass
+
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
@@ -29,29 +38,30 @@ class Adventure(commands.Cog):
             if after.reference.resolved is not None:
                 if after.reference.resolved.content != 'pls adventure':
                     return
-                
-        with contextlib.suppress(KeyError):
-            embed = after.embeds[0].to_dict()
+
+        if not after.embeds:
+            return
+        embed = after.embeds[0].to_dict()
+
+        with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
             if embed["author"]["name"] == "Adventure Summary":
                 await self.bot.set_command_hold_stat(False)
 
-        with contextlib.suppress(KeyError):
-            embed = after.embeds[0].to_dict()
+        with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
             if "choose items you want to" in embed["title"]:
                 for count, component in enumerate(after.components):
                     if component.children[0].label == "Start":
                         await self.bot.click(after, count, 0)
                         return
                 return
-            
-        with contextlib.suppress(KeyError):
-            embed = after.embeds[0].to_dict()
+
+        with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
             if "You can start another adventure at" in embed["description"]:
                 await self.bot.set_command_hold_stat(False)
                 return
 
             for i in range(3):
-                with contextlib.suppress(AttributeError):
+                with contextlib.suppress(AttributeError, IndexError):
                     button = after.components[i].children[1]
                     # if not button.disabled and button.emoji.id == 1067941108568567818:
                     if not button.disabled and button.emoji.id == 1379166099895091251:
@@ -74,7 +84,9 @@ class Adventure(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        with contextlib.suppress(KeyError):
+        if not message.embeds:
+            return
+        with contextlib.suppress(KeyError, TypeError, IndexError, AttributeError):
             embed = message.embeds[0].to_dict()
             if "Choose an Adventure" in embed["author"]["name"]:
                 await self.bot.set_command_hold_stat(True)

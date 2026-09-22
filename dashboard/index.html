@@ -3,240 +3,1011 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dank Automation Dashboard</title>
+  <title>The Pit — dank-automation</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338D9A9'/%3E%3Ctext x='16' y='22' font-size='17' text-anchor='middle' fill='%230d0714' font-family='sans-serif' font-weight='bold'%3E%E2%8F%A3%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("dma-theme")||"system"}catch(e){document.documentElement.dataset.theme="system"}</script>
   <style>
-    :root {
-      --bg: #0d1118;
-      --card: #161b26;
-      --card-2: #1e2433;
-      --text: #e8edf7;
-      --muted: #9aa4b7;
-      --primary: #3ba3ff;
-      --good: #2ecc71;
-      --warn: #f1c40f;
-      --bad: #ff5f56;
-      --border: #2a3142;
+    :root, :root[data-theme="dark"] {
+      color-scheme: dark;
+      /* Cool slate night. Mint is money + "on". Gold is caution. Rose is alarm.
+         Everything else is neutral slate, stepped by luminance. */
+      --ink: #0f141b;
+      --vault: #161d26;
+      --raised: #1e2731;
+      --seam: #2b3743;
+      --seam-soft: #212b35;
+      --parchment: #e9eff5;
+      --ash: #9fb0c0;
+      --faint: #7d8fa3;
+      --mint: #38d9a9;
+      --mint-hi: #6ee7bf;
+      --mint-ink: #06231b;
+      --mint-wash: rgba(56, 217, 169, .10);
+      --gold: #f0b94d;
+      --gold-wash: rgba(240, 185, 77, .10);
+      --rose: #f26d7d;
+      --rose-wash: rgba(242, 109, 125, .10);
+      --wash: rgba(233, 239, 245, .028);
+      --wash-strong: rgba(233, 239, 245, .06);
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      /* Same system on paper: cool white, deeper green for text contrast. */
+      --ink: #f5f7f9;
+      --vault: #ffffff;
+      --raised: #eef2f6;
+      --seam: #d5dde5;
+      --seam-soft: #e6ebf0;
+      --parchment: #131c26;
+      --ash: #4d5c6b;
+      --faint: #657585;
+      --mint: #0a7a57;
+      --mint-hi: #0a7a57;
+      --mint-ink: #ffffff;
+      --mint-wash: rgba(10, 122, 87, .09);
+      --gold: #8a5f00;
+      --gold-wash: rgba(138, 95, 0, .08);
+      --rose: #c0314a;
+      --rose-wash: rgba(192, 49, 74, .08);
+      --wash: rgba(19, 28, 38, .028);
+      --wash-strong: rgba(19, 28, 38, .06);
+    }
+    @media (prefers-color-scheme: light) {
+      :root[data-theme="system"] {
+        color-scheme: light;
+        --ink: #f5f7f9;
+        --vault: #ffffff;
+        --raised: #eef2f6;
+        --seam: #d5dde5;
+        --seam-soft: #e6ebf0;
+        --parchment: #131c26;
+        --ash: #4d5c6b;
+        --faint: #657585;
+        --mint: #0a7a57;
+        --mint-hi: #0a7a57;
+        --mint-ink: #ffffff;
+        --mint-wash: rgba(10, 122, 87, .09);
+        --gold: #8a5f00;
+        --gold-wash: rgba(138, 95, 0, .08);
+        --rose: #c0314a;
+        --rose-wash: rgba(192, 49, 74, .08);
+        --wash: rgba(19, 28, 38, .028);
+        --wash-strong: rgba(19, 28, 38, .06);
+      }
     }
     * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    :root {
+      --display: "Bricolage Grotesque", "Archivo", -apple-system, "Segoe UI", sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --r-card: 12px;
+      --r-ctl: 8px;
+    }
     body {
-      margin: 0;
-      background: radial-gradient(circle at top right, #1a2540 0%, var(--bg) 40%);
-      color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 0; background: var(--ink); color: var(--parchment);
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
     }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
-    h1 { margin: 0; font-size: 22px; }
-    .sub { color: var(--muted); margin-top: 4px; font-size: 13px; }
-    .grid { display: grid; gap: 12px; grid-template-columns: repeat(12, 1fr); margin-top: 16px; }
-    .card {
-      background: linear-gradient(180deg, var(--card), var(--card-2));
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
+    ::selection { background: var(--mint); color: var(--mint-ink); }
+    :focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; border-radius: 6px; }
+
+    /* ---------------- header ---------------- */
+    .top {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; gap: 20px;
+      height: 56px; padding: 0 24px;
+      background: color-mix(in srgb, var(--ink) 92%, transparent);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--seam-soft);
     }
-    .stat { grid-column: span 3; }
-    .title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
-    .value { margin-top: 8px; font-size: 24px; font-weight: 700; }
-    .bots { grid-column: span 7; }
-    .logs { grid-column: span 5; }
-    .settings { grid-column: span 12; }
-    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; }
-    .ok { background: rgba(46, 204, 113, .14); color: var(--good); }
-    .hold { background: rgba(241, 196, 15, .14); color: var(--warn); }
-    .off { background: rgba(255, 95, 86, .14); color: var(--bad); }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
-    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-size: 12px; }
+    .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; }
+    .mark {
+      width: 32px; height: 32px; border-radius: 10px; flex: none;
+      background: var(--mint); color: var(--mint-ink);
+      display: grid; place-items: center; font-size: 16px; font-weight: 800;
+    }
+    .brand h1 { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+    .brand small { display: block; color: var(--faint); font-weight: 500; font-size: 10.5px; font-family: var(--mono); }
+    .live { display: flex; align-items: center; gap: 14px; margin-left: auto; flex: none; }
+    .worth { display: flex; align-items: baseline; gap: 7px; }
+    .worth .wk { font-size: 12px; font-weight: 600; color: var(--faint); }
+    .worth .wv {
+      font-family: var(--display); font-size: 18px; font-weight: 800;
+      color: var(--mint-hi); letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); flex: none; align-self: center; animation: pulse 2.6s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+    .conn { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ash); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+    .dot.on { background: var(--mint); box-shadow: 0 0 0 3px var(--mint-wash); }
+    .theme {
+      display: flex; align-items: center; gap: 2px; flex: none;
+      background: var(--vault); border: 1px solid var(--seam-soft);
+      border-radius: 999px; padding: 3px;
+    }
+    .theme button {
+      background: none; border: 0; color: var(--faint);
+      font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+    }
+    .theme button:hover { color: var(--parchment); }
+    .theme button.active { background: var(--raised); color: var(--parchment); box-shadow: inset 0 0 0 1px var(--seam); }
+
+    /* ---------------- tabs ---------------- */
+    .tabs {
+      position: sticky; top: 56px; z-index: 39;
+      display: flex; gap: 2px; padding: 0 24px;
+      background: color-mix(in srgb, var(--ink) 92%, transparent);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--seam-soft);
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tabs button {
+      background: none; border: 0; border-bottom: 2px solid transparent;
+      color: var(--faint); font-size: 13.5px; font-weight: 700;
+      padding: 13px 14px 11px; cursor: pointer; font-family: var(--display);
+      letter-spacing: -0.01em; white-space: nowrap;
+    }
+    .tabs button:hover { color: var(--parchment); }
+    .tabs button.active { color: var(--parchment); border-bottom-color: var(--mint); }
+    .tabs button .n {
+      display: inline-block; min-width: 20px; text-align: center;
+      font-size: 11px; font-family: inherit; font-weight: 800;
+      background: var(--raised); border: 1px solid var(--seam-soft);
+      color: var(--ash); border-radius: 999px; padding: 0 6px; margin-left: 7px;
+      font-variant-numeric: tabular-nums;
+    }
+    .tabs button.active .n { background: var(--mint); border-color: var(--mint); color: var(--mint-ink); }
+
+    /* ---------------- activity tape ---------------- */
+    .tape { border-bottom: 1px solid var(--seam-soft); background: var(--vault); overflow: hidden; }
+    .tape-track {
+      display: inline-flex; align-items: center; white-space: nowrap;
+      padding: 7px 0; font-family: var(--mono); font-size: 11.5px;
+      animation: tape 70s linear infinite; will-change: transform;
+    }
+    .tape:hover .tape-track { animation-play-state: paused; }
+    @keyframes tape { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .tick { color: var(--faint); padding: 0 16px; }
+    .tick b { color: var(--ash); font-weight: 600; margin-right: 8px; }
+    .tick-sep { color: var(--seam); padding: 0 2px; }
+
+    /* ---------------- shell ---------------- */
+    main { max-width: 1160px; margin: 0 auto; padding: 28px 24px 64px; }
+    .tabpanel { display: none; }
+    .tabpanel.active { display: block; }
+
+    /* hero */
+    .hero {
+      display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+      gap: 16px; margin: 0 0 28px; align-items: stretch;
+    }
+    .hero-worth {
+      background: var(--vault); border: 1px solid var(--seam-soft); border-radius: var(--r-card);
+      padding: 20px 24px 22px; display: flex; flex-direction: column; justify-content: center;
+    }
+    .hero-worth .k { font-size: 12.5px; font-weight: 600; color: var(--faint); }
+    .hero-worth .hv {
+      font-family: var(--display); font-weight: 800; letter-spacing: -0.03em; line-height: 1;
+      font-size: clamp(40px, 5vw, 64px); color: var(--mint-hi);
+      font-variant-numeric: tabular-nums; margin: 8px 0 12px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .hero-worth .s { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ash); }
+    .hero-minis { display: grid; grid-template-rows: repeat(3, 1fr); gap: 16px; }
+    .mini {
+      background: var(--vault); border: 1px solid var(--seam-soft); border-radius: var(--r-card);
+      padding: 0 18px; display: flex; align-items: center; gap: 12px; min-width: 0;
+    }
+    .mini .k { font-size: 12.5px; font-weight: 600; color: var(--faint); flex: none; width: 72px; }
+    .mini .v {
+      font-family: var(--display); font-size: 23px; font-weight: 750; letter-spacing: -0.02em;
+      color: var(--parchment);
+      font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .mini .s { font-size: 11.5px; color: var(--faint); margin-left: auto; flex: none; font-family: var(--mono); }
+
+    /* ---------------- block headings ---------------- */
+    .block { margin-bottom: 30px; }
+    .block-head { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; flex-wrap: wrap; }
+    .block-head h2 { margin: 0; font-family: var(--display); font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
+    .block-head .cnt {
+      font-size: 12px; font-weight: 650; color: var(--ash);
+      background: var(--raised); border: 1px solid var(--seam-soft);
+      border-radius: 999px; padding: 2px 10px; font-variant-numeric: tabular-nums;
+    }
+    .block-head p { margin: 0 0 0 auto; font-size: 12.5px; color: var(--faint); }
+    .block-head .tools { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    /* ---------------- controls ---------------- */
+    .btn {
+      appearance: none; border: 1px solid var(--seam); background: var(--raised);
+      color: var(--parchment); border-radius: var(--r-ctl); padding: 7px 14px;
+      font-size: 12.5px; font-weight: 650; cursor: pointer; white-space: nowrap;
+      font-family: inherit; transition: background .12s, border-color .12s, color .12s;
+    }
+    .btn:hover { border-color: var(--mint); color: var(--mint-hi); }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .btn.primary { background: var(--mint); border-color: var(--mint); color: var(--mint-ink); }
+    .btn.primary:hover { filter: brightness(1.06); color: var(--mint-ink); }
+    .btn.quiet { background: transparent; color: var(--ash); border-color: transparent; }
+    .btn.quiet:hover { color: var(--parchment); background: var(--wash-strong); }
+    .btn.restart { border-color: var(--seam); color: var(--ash); }
+    .btn.restart:hover { border-color: var(--rose); color: var(--rose); }
+
+    input[type="search"], input[type="text"], input[type="number"], input[type="password"] {
+      background: var(--ink); border: 1px solid var(--seam); color: var(--parchment);
+      border-radius: var(--r-ctl); padding: 7px 11px; font-size: 12.5px; outline: none;
+      font-family: inherit; transition: border-color .12s;
+    }
+    input:focus { border-color: var(--mint); }
+    input::placeholder { color: var(--faint); }
+
+    /* ---------------- log console ---------------- */
+    .levels { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .levels button {
+      background: transparent; border: 1px solid var(--seam-soft); color: var(--faint);
+      font-size: 12.5px; font-weight: 650; padding: 6px 13px; border-radius: 999px;
+      cursor: pointer; font-family: inherit; transition: color .12s, border-color .12s, background .12s;
+    }
+    .levels button:hover { color: var(--parchment); border-color: var(--seam); }
+    .levels button.active { color: var(--parchment); background: var(--raised); border-color: var(--mint); }
+    .levels button .n { font-size: 11px; opacity: .7; margin-left: 5px; font-variant-numeric: tabular-nums; }
+    .logbar { display: flex; gap: 8px; align-items: center; }
+    .logbar input[type="search"] { width: 160px; }
+    .check { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ash); cursor: pointer; user-select: none; }
+    .check input { accent-color: var(--mint); width: 15px; height: 15px; }
     #logs {
-      height: 320px;
-      overflow: auto;
-      background: #0b0f16;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
+      height: 480px; min-height: 300px; overflow-y: auto; padding: 6px 0;
+      font-family: var(--mono); font-size: 12px; line-height: 1.75;
+      background: var(--vault); border: 1px solid var(--seam-soft); border-radius: var(--r-card);
     }
-    .log { margin: 0 0 6px 0; white-space: pre-wrap; }
-    .log.info { color: #86b7ff; }
-    .log.yellow, .log.warn { color: var(--warn); }
-    .log.green, .log.success { color: var(--good); }
-    .log.red, .log.error { color: var(--bad); }
-    button {
-      border: 1px solid #2f5589;
-      background: #11345f;
-      color: #cfe7ff;
-      border-radius: 8px;
-      padding: 8px 12px;
-      cursor: pointer;
+    #logs::-webkit-scrollbar { width: 10px; }
+    #logs::-webkit-scrollbar-thumb { background: var(--seam); border-radius: 8px; border: 3px solid var(--vault); }
+    .log {
+      margin: 0; padding: 1px 18px 1px 15px; color: var(--ash);
+      word-break: break-word; white-space: pre-wrap;
+      border-left: 2px solid transparent;
     }
-    textarea {
-      width: 100%;
-      min-height: 280px;
-      margin-top: 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #0b0f16;
-      color: var(--text);
-      padding: 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
+    .log:hover { background: var(--wash); }
+    .log .t { color: var(--faint); margin-right: 10px; }
+    .log .lv { display: inline-block; width: 46px; font-weight: 600; margin-right: 10px; color: var(--faint); }
+    .log.green .lv, .log.success .lv { color: var(--mint); }
+    .log.green, .log.success { border-left-color: var(--mint); }
+    .log.yellow, .log.warn { border-left-color: var(--gold); background: var(--gold-wash); }
+    .log.yellow .lv, .log.warn .lv { color: var(--gold); }
+    .log.red, .log.error { border-left-color: var(--rose); background: var(--rose-wash); }
+    .log.red .lv, .log.error .lv { color: var(--rose); }
+    .stream-foot { display: flex; justify-content: space-between; gap: 10px; color: var(--faint); font-size: 12px; margin-top: 10px; }
+    .stream-foot .mono { font-size: 11.5px; }
+
+    /* ---------------- switchboard rows ---------------- */
+    .grp { margin-bottom: 24px; }
+    .grp-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; padding-bottom: 9px; border-bottom: 1px solid var(--seam-soft); }
+    .grp-head h3 { margin: 0; font-family: var(--display); font-size: 15px; font-weight: 750; letter-spacing: -0.01em; color: var(--parchment); }
+    .grp-head .cnt { font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .grp-head p { margin: 0 0 0 auto; font-size: 12px; color: var(--faint); text-align: right; }
+    .cmd-list { display: flex; flex-direction: column; gap: 6px; }
+    .cmd {
+      background: var(--vault); border: 1px solid var(--seam-soft);
+      border-left: 3px solid transparent; border-radius: 10px;
+      padding: 9px 16px; min-width: 0;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
     }
+    .cmd.on { border-left-color: var(--mint); }
+    .cmd.on .cmd-id h3 { color: var(--parchment); }
+    .cmd-id { flex: 1 1 150px; min-width: 0; display: flex; align-items: center; gap: 10px; }
+    .cmd-id h3 {
+      margin: 0; font-size: 13.5px; font-weight: 650; text-transform: capitalize;
+      color: var(--ash); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cmd-id .st {
+      flex: none; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+      color: var(--faint); background: var(--wash-strong); border-radius: 999px; padding: 1px 8px;
+    }
+    .cmd-id .st.on { color: var(--mint); background: var(--mint-wash); }
+    .frow { display: flex; align-items: center; gap: 9px; flex: 0 1 190px; min-width: 0; }
+    .frow > label { flex: none; color: var(--faint); font-size: 12px; }
+    .frow input[type="number"], .frow input[type="text"] { width: 100%; min-width: 0; }
+    .frow .chk { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ash); cursor: pointer; white-space: nowrap; }
+    .frow .chk input { width: 15px; height: 15px; accent-color: var(--mint); }
+    .cmd-search { width: 170px; }
+
+    /* toggle switch */
+    .sw { flex: none; cursor: pointer; display: flex; }
+    .sw input {
+      appearance: none; -webkit-appearance: none; margin: 0; cursor: pointer;
+      width: 42px; height: 24px; border-radius: 999px; position: relative;
+      background: var(--raised); border: 1px solid var(--seam);
+      transition: background .15s, border-color .15s;
+    }
+    .sw input::after {
+      content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+      border-radius: 50%; background: var(--faint); transition: left .15s, background .15s;
+    }
+    .sw input:checked { background: var(--mint); border-color: var(--mint); }
+    .sw input:checked::after { left: 20px; background: var(--mint-ink); }
+    .sw input:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+
+    /* ---------------- settings rows ---------------- */
+    .set-list { display: flex; flex-direction: column; gap: 6px; }
+    .set-row {
+      background: var(--vault); border: 1px solid var(--seam-soft);
+      border-left: 3px solid transparent; border-radius: 10px;
+      padding: 11px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .set-row.on { border-left-color: var(--mint); }
+    .set-id { flex: 1 1 240px; min-width: 0; }
+    .set-id h3 { margin: 0; font-size: 13.5px; font-weight: 650; }
+    .set-id p { margin: 2px 0 0; font-size: 12px; color: var(--faint); }
+    .set-id .key {
+      display: inline-block; margin-left: 7px; vertical-align: 1px;
+      font-family: var(--mono); font-size: 10.5px;
+      color: var(--faint); background: var(--wash-strong); border-radius: 5px; padding: 1px 6px;
+    }
+    .set-row .frow { flex: 0 1 260px; }
+
+    /* ---------------- panels / tables ---------------- */
+    .panel { background: var(--vault); border: 1px solid var(--seam-soft); border-radius: var(--r-card); min-width: 0; overflow: hidden; }
+    .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 13px 18px; border-bottom: 1px solid var(--seam-soft); }
+    .panel-head h3 { margin: 0; font-size: 13px; font-weight: 650; }
+    .panel-head p { margin: 0; font-size: 11.5px; color: var(--faint); font-family: var(--mono); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; font-size: 11.5px; font-weight: 600; color: var(--faint); padding: 11px 14px 7px; }
+    td { padding: 11px 14px; border-top: 1px solid var(--seam-soft); vertical-align: middle; }
+    tbody tr:hover td { background: var(--wash); }
+    td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    .tbl-scroll { overflow-x: auto; }
+    .mono { font-family: var(--mono); font-size: 12px; }
+    .dim { color: var(--ash); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11.5px; font-weight: 650; padding: 2px 10px; border-radius: 999px;
+      border: 1px solid var(--seam-soft); background: var(--wash-strong); color: var(--ash); white-space: nowrap;
+    }
+    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge.green { color: var(--mint); background: var(--mint-wash); border-color: transparent; }
+    .badge.red { color: var(--rose); background: var(--rose-wash); border-color: transparent; }
+    .badge.grey { color: var(--faint); }
+    .empty { padding: 24px 18px; color: var(--faint); font-size: 13px; }
+    .acct-add {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      background: var(--vault); border: 1px solid var(--seam-soft); border-radius: var(--r-card);
+      padding: 14px 16px; margin-bottom: 16px;
+    }
+    .acct-add input { font-family: var(--mono); }
+    #acctToken { flex: 2 1 280px; min-width: 0; }
+    #acctChannel { flex: 1 1 170px; min-width: 0; }
+
+    .hint { color: var(--faint); font-size: 12.5px; margin: 0 0 16px; max-width: 72ch; }
+    footer.deck-foot { display: flex; justify-content: space-between; gap: 10px; color: var(--faint); font-size: 12px; padding: 8px 2px 0; border-top: 1px solid var(--seam-soft); margin-top: 12px; }
+
+    #toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(10px);
+      background: var(--raised); border: 1px solid var(--mint); color: var(--parchment);
+      padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 50;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.bad { border-color: var(--rose); }
+
     @media (max-width: 900px) {
-      .stat { grid-column: span 6; }
-      .bots, .logs, .settings { grid-column: span 12; }
+      .top {
+        position: static; height: auto; flex-wrap: wrap;
+        gap: 10px 12px; padding: 12px 16px;
+      }
+      .live { margin-left: 0; width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+      .tabs { top: 0; padding: 0 16px; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-worth .hv { font-size: clamp(36px, 11vw, 52px); }
+      main { padding: 20px 16px 48px; }
+      .block-head p, .block-head .tools { margin-left: 0; }
+      .frow { flex: 1 1 140px; }
+    }
+    @media (max-width: 700px) {
+      /* Net worth is already the hero; drop the header copy to fit the row. */
+      .worth { display: none; }
+      .block-head .tools { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .tape-track { animation: none; flex-wrap: wrap; white-space: normal; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Dank Automation Dashboard</h1>
-    <div class="sub">Local dashboard • http://127.0.0.1:3000</div>
+<header class="top">
+  <a class="brand" href="#overview">
+    <div class="mark">⏣</div>
+    <h1>The Pit<small>dank-automation · local</small></h1>
+  </a>
+  <div class="live">
+    <div class="theme" role="group" aria-label="Appearance">
+      <button id="themeSystem" class="active" title="Follow system" onclick="setTheme('system')">System</button>
+      <button id="themeDark" title="Dark" onclick="setTheme('dark')">Dark</button>
+      <button id="themeLight" title="Light" onclick="setTheme('light')">Light</button>
+    </div>
+    <div class="worth"><span class="wk">Net worth</span><span class="wv" id="netWorth">–</span><span class="pulse"></span></div>
+    <div class="conn"><span class="dot" id="runState"></span><span class="txt" id="runStateText">connecting…</span></div>
+    <button class="btn restart" id="restartBtn" onclick="restartBot()" title="Restart the whole bot process">Restart</button>
+  </div>
+</header>
+<nav class="tabs" role="tablist" aria-label="Dashboard sections">
+  <button role="tab" data-tab="overview" class="active" onclick="switchTab('overview')">Overview</button>
+  <button role="tab" data-tab="commands" onclick="switchTab('commands')">Commands<span class="n" id="cmdBdg" style="display:none"></span></button>
+  <button role="tab" data-tab="logs" onclick="switchTab('logs')">Logs</button>
+  <button role="tab" data-tab="settings" onclick="switchTab('settings')">Settings</button>
+  <button role="tab" data-tab="accounts" onclick="switchTab('accounts')">Accounts<span class="n" id="acctBdg" style="display:none"></span></button>
+</nav>
+<div class="tape"><div class="tape-track" id="tapeTrack"><span class="tick">warming up the tape…</span></div></div>
 
-    <div class="grid">
-      <div class="card stat">
-        <div class="title">Uptime</div>
-        <div class="value" id="uptime">-</div>
+<main id="top">
+  <section class="tabpanel active" id="tab-overview" role="tabpanel">
+    <section class="hero">
+      <div class="hero-worth">
+        <div class="k">Net worth</div>
+        <div class="hv" id="heroWorth">–</div>
+        <div class="s"><span id="botsSub">no data yet</span></div>
       </div>
-      <div class="card stat">
-        <div class="title">Bots</div>
-        <div class="value" id="botsCount">-</div>
+      <div class="hero-minis">
+        <div class="mini"><span class="k">Uptime</span><span class="v" id="uptime">–</span><span class="s">hh:mm:ss</span></div>
+        <div class="mini"><span class="k">Bots</span><span class="v" id="botsCount">–</span><span class="s">connected</span></div>
+        <div class="mini"><span class="k">Sent</span><span class="v" id="cmdCount">–</span><span class="s">this session</span></div>
       </div>
-      <div class="card stat">
-        <div class="title">Commands Sent</div>
-        <div class="value" id="cmdCount">-</div>
+    </section>
+    <section class="block">
+      <div class="block-head">
+        <h2>The Vault</h2><span class="cnt" id="botsMeta">no data yet</span>
+        <div class="tools"><button class="btn" onclick="loadOverview()">Refresh</button></div>
       </div>
-      <div class="card stat">
-        <div class="title">Net Worth (Sum)</div>
-        <div class="value" id="netWorth">-</div>
-      </div>
-
-      <div class="card bots">
-        <div class="row">
-          <strong>Bot Status</strong>
-          <button onclick="loadOverview()">Refresh</button>
-        </div>
+      <div class="panel"><div class="panel-head"><h3>Connected clients</h3><p>from /api/overview</p></div>
+        <div class="tbl-scroll">
         <table>
-          <thead>
-            <tr><th>Channel</th><th>State</th><th>Hold</th><th>Last Cmd</th><th>Coins</th><th>Inventory</th><th>Net</th></tr>
-          </thead>
-          <tbody id="botsTable"></tbody>
+          <thead><tr><th>Channel</th><th>Status</th><th>Hold</th><th>Last command</th><th class="n">Coins</th><th class="n">Inventory</th><th class="n">Net</th></tr></thead>
+          <tbody id="acctBody"></tbody>
         </table>
-      </div>
-
-      <div class="card logs">
-        <div class="row">
-          <strong>Live Logs</strong>
-          <button onclick="loadLogs()">Reload</button>
         </div>
-        <div id="logs"></div>
       </div>
+    </section>
+  </section>
 
-      <div class="card settings">
-        <div class="row">
-          <strong>settings.json</strong>
-          <div>
-            <button onclick="saveSettings()">Save</button>
-            <button onclick="reloadSettings()">Apply To Running Bots</button>
-          </div>
-        </div>
-        <textarea id="settingsEditor"></textarea>
+  <section class="tabpanel" id="tab-commands" role="tabpanel">
+    <div class="block-head">
+      <h2>The Switchboard</h2><span class="cnt" id="enabledCount">–</span>
+      <div class="tools">
+        <input class="cmd-search" id="cmdFilter" type="search" placeholder="Filter commands" oninput="renderCommands()">
+        <button class="btn quiet" onclick="enableAll(true)">Enable all</button>
+        <button class="btn quiet" onclick="enableAll(false)">Disable all</button>
+        <button class="btn primary" onclick="saveSettings()">Save</button>
+        <button class="btn" onclick="applySettings()">Apply</button>
       </div>
     </div>
-  </div>
+    <div class="hint">Toggles apply to every account. Save writes settings.json; Apply pushes it to the running bots.</div>
+    <div id="cmdGroups"></div>
+  </section>
 
-  <script>
-    function fmt(n) {
-      const x = Number(n || 0);
-      return Number.isFinite(x) ? x.toLocaleString() : "0";
+  <section class="tabpanel" id="tab-logs" role="tabpanel">
+    <div class="block-head">
+      <h2>The Stream</h2><span class="cnt" id="logCount">0 shown</span>
+      <div class="tools">
+        <div class="logbar">
+          <input type="search" id="logFilter" placeholder="Filter" oninput="renderLogs()">
+          <label class="check"><input type="checkbox" id="autoScroll" checked> Follow</label>
+        </div>
+      </div>
+    </div>
+    <div class="levels">
+      <button id="segActivity" class="active" onclick="setSeg('activity')">Activity<span class="n" id="nActivity"></span></button>
+      <button id="segImportant" onclick="setSeg('important')">Important<span class="n" id="nImportant"></span></button>
+      <button id="segDiscord" onclick="setSeg('discord')">Discord<span class="n" id="nDiscord"></span></button>
+    </div>
+    <div id="logs"></div>
+    <div class="stream-foot"><span>newest at the bottom · 3s refresh</span><span class="mono">dank memer self-bot</span></div>
+  </section>
+
+  <section class="tabpanel" id="tab-settings" role="tabpanel">
+    <div class="block-head">
+      <h2>Global Switches</h2><span class="cnt" id="globalCount">–</span>
+      <div class="tools">
+        <button class="btn primary" onclick="saveSettings()">Save</button>
+        <button class="btn" onclick="applySettings()">Apply</button>
+      </div>
+    </div>
+    <div class="hint">Every switch here maps to a value in settings.json. Save writes the file; Apply pushes it to the running bots.</div>
+    <div class="set-list" id="globalList"></div>
+    <div class="block-head" style="margin-top:22px"><h2 style="font-size:19px">Timings &amp; hooks</h2></div>
+    <div class="set-list" id="tuningList"></div>
+  </section>
+
+  <section class="tabpanel" id="tab-accounts" role="tabpanel">
+    <div class="block-head">
+      <h2>Accounts</h2><span class="cnt" id="accountsMeta">–</span>
+      <div class="tools"><button class="btn" onclick="loadAccounts()">Refresh</button></div>
+    </div>
+    <div class="hint">Adding writes tokens.txt right away. New accounts start after a restart.</div>
+    <div class="acct-add">
+      <input id="acctToken" type="password" placeholder="token" autocomplete="off" spellcheck="false">
+      <input id="acctChannel" type="text" placeholder="channel_id" inputmode="numeric" spellcheck="false">
+      <button class="btn primary" onclick="addAccount()">Add account</button>
+    </div>
+    <div class="panel"><div class="panel-head"><h3>tokens.txt</h3><p>tokens masked</p></div>
+      <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>Token</th><th>Channel</th><th style="text-align:right">Action</th></tr></thead>
+        <tbody id="acctList"></tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="deck-foot"><span>The Pit · dank-automation</span><span class="mono">v1.5.2</span></footer>
+</main>
+<div id="toast"></div>
+
+<script>
+  let lastLogs = [], settingsData = null, cmdGroups = null;
+  let seg = "activity";
+  let activeTab = "overview";
+  const $ = id => document.getElementById(id);
+
+  function storedTheme() {
+    try { const t = localStorage.getItem("dma-theme"); if (["system", "dark", "light"].includes(t)) return t; } catch (e) {}
+    return "system";
+  }
+  function applyTheme() {
+    const t = storedTheme();
+    document.documentElement.dataset.theme = t;
+    for (const k of ["system", "dark", "light"]) {
+      const el = $("theme" + k[0].toUpperCase() + k.slice(1));
+      if (el) el.classList.toggle("active", k === t);
     }
+  }
+  function setTheme(t) {
+    try { localStorage.setItem("dma-theme", t); } catch (e) {}
+    applyTheme();
+  }
+  try {
+    matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (storedTheme() === "system") applyTheme(); });
+  } catch (e) {}
 
-    function secToHms(s) {
-      const h = Math.floor(s / 3600);
-      const m = Math.floor((s % 3600) / 60);
-      const sec = s % 60;
-      return `${h}h ${m}m ${sec}s`;
+  function switchTab(name) {
+    activeTab = name;
+    document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+    document.querySelectorAll(".tabpanel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+    try { location.hash = name; } catch (e) {}
+    if (name === "logs") renderLogs();
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function fmt(n) { const x = Number(n || 0); return Number.isFinite(x) ? x.toLocaleString("en-US") : "0"; }
+  function hms(s) {
+    s = Math.max(0, Math.floor(Number(s || 0)));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const p = n => String(n).padStart(2, "0");
+    return h > 0 ? `${h}:${p(m)}:${p(sec)}` : `${m}:${p(sec)}`;
+  }
+  function toast(msg, bad) {
+    const el = $("toast"); el.textContent = msg;
+    el.classList.toggle("bad", !!bad); el.classList.add("show");
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+  function setSeg(name) {
+    seg = name;
+    for (const s of ["activity", "important", "discord"])
+      $("seg" + s[0].toUpperCase() + s.slice(1)).classList.toggle("active", s === name);
+    renderLogs();
+  }
+
+  // Real bot logs are almost all INFO, so "Important" (non-info levels) is
+  // rare. "Activity" is the default view: everything that is not the
+  // socket/gateway chatter, which gets its own segment.
+  function logBucket(l) {
+    const msg = String(l.message || "");
+    if (/discord|gateway|aiohttp|voice|pynacl|davey/i.test(msg)) return "discord";
+    if (String(l.level || "info").toLowerCase() !== "info") return "important";
+    return "activity";
+  }
+  function segMatch(bucket) {
+    return seg === "activity" ? bucket !== "discord" : bucket === seg;
+  }
+  const LEVEL_LABEL = {
+    info: "info", blue: "info", green: "ok", success: "ok",
+    yellow: "warn", warn: "warn", red: "error", error: "error",
+  };
+  function paintTape() {
+    const track = $("tapeTrack");
+    if (!track) return;
+    const items = (lastLogs || []).filter(l => logBucket(l) !== "discord").slice(-14);
+    if (!items.length) { track.innerHTML = `<span class="tick">tape idle — start main.py to light it up</span>`; return; }
+    const half = items.map(l => {
+      const raw = String(l.level || "info").toLowerCase();
+      return `<span class="tick"><b>${esc(LEVEL_LABEL[raw] || "info")}</b>${esc(l.message)}</span>`;
+    }).join(`<span class="tick-sep">///</span>`);
+    track.innerHTML = half + `<span class="tick-sep">///</span>` + half + `<span class="tick-sep">///</span>`;
+  }
+  function renderLogs() {
+    const q = ($("logFilter").value || "").toLowerCase();
+    const counts = { activity: 0, important: 0, discord: 0 };
+    for (const l of (lastLogs || [])) counts[logBucket(l)]++;
+    counts.activity += counts.important; // "Activity" = everything but socket chatter
+    $("nActivity").textContent = counts.activity || "";
+    $("nImportant").textContent = counts.important || "";
+    $("nDiscord").textContent = counts.discord || "";
+    const rows = (lastLogs || []).filter(l =>
+      segMatch(logBucket(l)) &&
+      (!q || String(l.message || "").toLowerCase().includes(q) || String(l.level || "").toLowerCase().includes(q))
+    );
+    $("logs").innerHTML = rows.map(l => {
+      const raw = String(l.level || "info").toLowerCase();
+      const label = LEVEL_LABEL[raw] || "info";
+      return `<p class="log ${esc(raw)}"><span class="t">${esc(l.ts)}</span><span class="lv">${label}</span>${esc(l.message)}</p>`;
+    }).join("") || `<p class="log"><span class="t">–</span>no lines in this view</p>`;
+    $("logCount").textContent = rows.length + " shown";
+    if ($("autoScroll").checked) $("logs").scrollTop = $("logs").scrollHeight;
+    paintTape();
+  }
+  async function loadLogs() {
+    try {
+      lastLogs = (await (await fetch("/api/logs?limit=500")).json()).logs || [];
+      renderLogs();
+    } catch (e) { /* keep previous */ }
+  }
+
+  function paintStats(data) {
+    const bots = data.bots || [];
+    const online = bots.filter(b => b.state).length;
+    $("uptime").textContent = hms(data.uptime_s || 0);
+    $("botsCount").textContent = String(bots.length);
+    $("botsSub").textContent = bots.length ? `${online} of ${bots.length} online` : "no data yet";
+    $("cmdCount").textContent = fmt(data.total_commands);
+    $("runState").className = "dot" + (online > 0 ? " on" : "");
+    $("runStateText").textContent = online > 0 ? `${online} online` : "offline";
+    let netSum = 0;
+    for (const b of bots) {
+      const net = Number(b.worth?.net || 0);
+      if (Number.isFinite(net)) netSum += net;
     }
+    const worth = "⏣ " + fmt(netSum);
+    $("netWorth").textContent = worth;
+    $("heroWorth").textContent = worth;
+    $("botsMeta").textContent = bots.length ? `${online} of ${bots.length} online` : "no data yet";
+    paintAccounts(data);
+  }
+  function paintAccounts(data) {
+    const bots = data.bots || [];
+    $("acctBody").innerHTML = bots.map(b => `<tr>
+        <td class="mono">${esc(b.channel_id ?? "–")}</td>
+        <td>${b.state ? '<span class="badge green">online</span>' : '<span class="badge red">offline</span>'}</td>
+        <td>${b.hold_command ? '<span class="badge grey">hold</span>' : '<span class="badge grey">free</span>'}</td>
+        <td class="mono dim">${esc(b.last_command || "–")}</td>
+        <td class="n mono">⏣ ${fmt(b.worth?.coins)}</td>
+        <td class="n mono">${fmt(b.worth?.inventory)}</td>
+        <td class="n mono">⏣ ${fmt(b.worth?.net)}</td>
+      </tr>`).join("") || `<tr><td colspan="7"><div class="empty">No bots connected. Start main.py to register.</div></td></tr>`;
+  }
+  async function loadOverview() {
+    let data;
+    try { data = await (await fetch("/api/overview")).json(); }
+    catch (e) { return; }
+    paintStats(data);
+  }
 
-    async function loadOverview() {
-      const res = await fetch("/api/overview");
-      const data = await res.json();
-      document.getElementById("uptime").textContent = secToHms(data.uptime_s || 0);
-      document.getElementById("botsCount").textContent = data.bots.length;
-      document.getElementById("cmdCount").textContent = fmt(data.total_commands);
-
-      let netSum = 0;
-      const rows = data.bots.map(b => {
-        const net = Number(b.worth?.net || 0);
-        netSum += Number.isFinite(net) ? net : 0;
-        const statePill = b.state ? '<span class="pill ok">online</span>' : '<span class="pill off">offline</span>';
-        const holdPill = b.hold_command ? '<span class="pill hold">hold</span>' : '<span class="pill ok">free</span>';
-        return `<tr>
-          <td>${b.channel_id ?? "-"}</td>
-          <td>${statePill}</td>
-          <td>${holdPill}</td>
-          <td>${b.last_command || "-"}</td>
-          <td>${fmt(b.worth?.coins)}</td>
-          <td>${fmt(b.worth?.inventory)}</td>
-          <td>${fmt(b.worth?.net)}</td>
-        </tr>`;
-      }).join("");
-
-      document.getElementById("botsTable").innerHTML = rows || '<tr><td colspan="7">No bots</td></tr>';
-      document.getElementById("netWorth").textContent = fmt(netSum);
+  // settings.json is staged in memory; toggles mutate it, Save writes the
+  // file, Apply writes + pushes to running bots. No raw JSON editing.
+  async function ensureSettings() {
+    if (settingsData) return settingsData;
+    try {
+      settingsData = await (await fetch("/api/settings")).json();
+      renderGlobals();
+      refreshCounts();
+      renderCommands();
+    } catch (e) { toast("Could not load settings", true); }
+    return settingsData;
+  }
+  async function ensureGroups() {
+    if (cmdGroups) return cmdGroups;
+    try {
+      cmdGroups = (await (await fetch("/api/commands")).json()).groups || null;
+    } catch (e) { cmdGroups = null; }
+    if (!cmdGroups) {
+      // Fallback mirrors utils/dashboard_server.py ROTATION_COMMANDS.
+      const rotation = ["trivia","dig","fish","hunt","pm","beg","pet","scratch","hl","search","tidy","dep_all","stream","work","daily","crime","bal","adventure","blackjack"];
+      const cmds = (settingsData && settingsData.commands) || {};
+      cmdGroups = {
+        rotation: rotation.filter(k => k in cmds),
+        onboarding_only: Object.keys(cmds).filter(k => !rotation.includes(k)),
+        other: [],
+      };
     }
+    return cmdGroups;
+  }
 
-    async function loadLogs() {
-      const res = await fetch("/api/logs?limit=250");
-      const data = await res.json();
-      const html = (data.logs || []).map(l =>
-        `<p class="log ${l.level}">[${l.ts}] ${l.message}</p>`
-      ).join("");
-      const el = document.getElementById("logs");
-      el.innerHTML = html;
-      el.scrollTop = el.scrollHeight;
+  function getPath(obj, path) {
+    let cur = obj;
+    for (const k of path) {
+      if (cur == null || typeof cur !== "object") return undefined;
+      cur = cur[k];
     }
-
-    async function loadSettings() {
-      const res = await fetch("/api/settings");
-      const data = await res.json();
-      document.getElementById("settingsEditor").value = JSON.stringify(data, null, 2);
+    return cur;
+  }
+  function setPath(obj, path, value) {
+    let cur = obj;
+    for (let i = 0; i < path.length - 1; i++) {
+      if (cur[path[i]] == null || typeof cur[path[i]] !== "object") cur[path[i]] = {};
+      cur = cur[path[i]];
     }
+    cur[path[path.length - 1]] = value;
+  }
 
-    async function saveSettings() {
-      const raw = document.getElementById("settingsEditor").value;
-      let parsed;
+  // Every global boolean in settings.json gets a toggle row.
+  const GLOBAL_TOGGLES = [
+    { path: ["settings", "breaks"], title: "Breaks", sub: "scheduled rest windows between grind loops" },
+    { path: ["settings", "slashCommands"], title: "Slash commands", sub: "send /commands instead of pls prefix" },
+    { path: ["settings", "webhooklogging"], title: "Webhook logging", sub: "mirror log lines to webhookURL" },
+    { path: ["settings", "gambling", "enabled"], title: "Gambling", sub: "settings.gambling cointoss / slots / dice" },
+    { path: ["settings", "onboarding", "enabled"], title: "Onboarding", sub: "objective-driven new-account progression" },
+    { path: ["settings", "flow", "enabled"], title: "Flow mode", sub: "Dank Memer /flow driver instead of rotation" },
+  ];
+  const TUNING_FIELDS = [
+    { path: ["settings", "flow", "flow_name"], title: "Flow name", sub: "which /flow to drive", type: "text" },
+    { path: ["settings", "webhookURL"], title: "Webhook URL", sub: "needs webhook logging on", type: "text", mono: true },
+    { path: ["settings", "cooldowns", "minCommandDelay"], title: "Min command delay", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "maxCommandDelay"], title: "Max command delay", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "minButtonClickDelay"], title: "Min button delay", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "maxButtonClickDelay"], title: "Max button delay", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "minBreakCooldown"], title: "Min break cooldown", sub: "seconds between breaks", type: "number" },
+    { path: ["settings", "cooldowns", "maxBreakCooldown"], title: "Max break cooldown", sub: "seconds between breaks", type: "number" },
+    { path: ["settings", "cooldowns", "minBreakDuration"], title: "Min break length", sub: "seconds", type: "number" },
+    { path: ["settings", "cooldowns", "maxBreakDuration"], title: "Max break length", sub: "seconds", type: "number" },
+  ];
+  function toggleRow(def) {
+    const key = def.path.join(".");
+    return `<div class="set-row" data-gkey="${esc(key)}">
+      <label class="sw" title="Toggle ${esc(def.title)}"><input type="checkbox" data-gtoggle="${esc(key)}" onchange="setGlobal('${esc(key)}',this.checked,this)"><span></span></label>
+      <div class="set-id"><h3>${esc(def.title)}</h3><p>${esc(def.sub)} <span class="key">${esc(key)}</span></p></div>
+    </div>`;
+  }
+  function renderGlobals() {
+    if (!settingsData) return;
+    $("globalList").innerHTML = GLOBAL_TOGGLES.map(toggleRow).join("");
+    $("tuningList").innerHTML = TUNING_FIELDS.map(f => {
+      const key = f.path.join(".");
+      const val = getPath(settingsData, f.path) ?? "";
+      const input = f.type === "number"
+        ? `<input type="number" step="any" value="${esc(val)}" onchange="setGlobalNum('${esc(key)}',this.value)">`
+        : `<input type="text" value="${esc(val)}" ${f.mono ? 'class="mono" style="font-family:ui-monospace,Menlo,monospace"' : ""} onchange="setGlobalText('${esc(key)}',this.value)">`;
+      return `<div class="set-row"><div class="set-id"><h3>${esc(f.title)}</h3><p>${esc(f.sub)} <span class="key">${esc(key)}</span></p></div><div class="frow">${input}</div></div>`;
+    }).join("");
+    for (const def of GLOBAL_TOGGLES) {
+      const key = def.path.join(".");
+      const on = !!getPath(settingsData, def.path);
+      document.querySelectorAll(`[data-gtoggle="${CSS.escape(key)}"]`).forEach(el => { el.checked = on; });
+      document.querySelectorAll(`[data-gkey="${CSS.escape(key)}"]`).forEach(el => el.classList.toggle("on", on));
+    }
+    refreshCounts();
+  }
+  function findDef(key) {
+    return GLOBAL_TOGGLES.find(d => d.path.join(".") === key) || TUNING_FIELDS.find(d => d.path.join(".") === key);
+  }
+  function setGlobal(key, on, el) {
+    const def = findDef(key);
+    if (!def || !settingsData) return;
+    setPath(settingsData, def.path, on);
+    const root = el && el.closest ? el.closest(".set-row") : null;
+    if (root) root.classList.toggle("on", on);
+    refreshCounts();
+  }
+  function setGlobalNum(key, raw) {
+    const def = findDef(key);
+    if (!def || !settingsData) return;
+    const v = Number(raw);
+    if (!Number.isFinite(v)) { toast("Must be a number", true); renderGlobals(); return; }
+    setPath(settingsData, def.path, v);
+  }
+  function setGlobalText(key, raw) {
+    const def = findDef(key);
+    if (!def || !settingsData) return;
+    setPath(settingsData, def.path, String(raw));
+  }
+
+  function cmdCard(name, c) {
+    const en = !!(c && c.enabled);
+    let extra = "";
+    if (name === "blackjack") {
+      extra = `<div class="frow"><label>Bet</label><input type="number" step="100" value="${esc(c.bet ?? 5000)}" onchange="setField('${esc(name)}','bet',Number(this.value))"></div>
+      <div class="frow"><label>Counting</label><label class="chk"><input type="checkbox" ${c.card_counting ? "checked" : ""} onchange="setField('${esc(name)}','card_counting',this.checked)"> Hi-Lo + bet ramp</label></div>`;
+    } else if (name === "fish") {
+      extra = `<div class="frow"><label>Sell</label><label class="chk"><input type="checkbox" ${c.sell && c.sell.enabled ? "checked" : ""} onchange="setNested('${esc(name)}','sell','enabled',this.checked)"> auto-sell catch</label></div>`;
+    } else if (c && ("priority" in c || "second_priority" in c || "avoid" in c)) {
+      extra = `<div class="frow"><label>Priority</label><input type="text" value="${esc((c.priority || []).join(", "))}" onchange="setList('${esc(name)}','priority',this.value)"></div>`;
+    } else if (name === "stream") {
+      extra = `<div class="frow"><label>Order</label><input type="text" value="${esc((c.order || []).join(", "))}" onchange="setNumList('${esc(name)}','order',this.value)"></div>`;
+    }
+    return `<div class="cmd${en ? " on" : ""}" data-name="${esc(name)}">
+      <label class="sw" title="Toggle ${esc(name)}"><input type="checkbox" ${en ? "checked" : ""} onchange="setEnabled('${esc(name)}',this.checked,this)"><span></span></label>
+      <div class="cmd-id"><h3 title="${esc(name)}">${esc(name)}</h3><span class="st${en ? " on" : ""}">${en ? "on" : "off"}</span></div>
+      <div class="frow"><label>Delay (s)</label><input type="number" value="${esc(c.delay ?? 60)}" onchange="setField('${esc(name)}','delay',Number(this.value))"></div>
+      ${extra}
+    </div>`;
+  }
+  function renderCommands() {
+    if (!settingsData) return;
+    const cmds = settingsData.commands || {};
+    const q = (($("cmdFilter") && $("cmdFilter").value) || "").toLowerCase();
+    const match = n => !q || n.toLowerCase().includes(q);
+    const groups = cmdGroups || { rotation: Object.keys(cmds), onboarding_only: [], other: [] };
+    const sections = [
+      ["rotation", "Rotation", (groups.rotation || []).filter(k => k in cmds), "runs in the normal loop"],
+      ["onboarding_only", "Onboarding only", (groups.onboarding_only || []).filter(k => k in cmds), "only while an onboarding objective is pending"],
+    ];
+    const other = (groups.other || []).filter(k => k in cmds);
+    if (other.length) sections.push(["other", "Other", other, "present in settings, not driven by a loop"]);
+    $("cmdGroups").innerHTML = sections.map(([key, title, names, sub]) => {
+      const shown = names.filter(match);
+      if (!names.length) return "";
+      return `<section class="grp"><div class="grp-head"><h3>${title}</h3><span class="cnt">${shown.length}/${names.length}</span><p>${sub}</p></div>
+        <div class="cmd-list">${shown.map(n => cmdCard(n, cmds[n] || {})).join("") || `<div class="empty">No match for “${esc(q)}”.</div>`}</div></section>`;
+    }).join("");
+    refreshCounts();
+  }
+  function refreshCounts() {
+    if (!settingsData) return;
+    const cmds = settingsData.commands || {};
+    const keys = Object.keys(cmds);
+    const n = Object.values(cmds).filter(c => c && c.enabled).length;
+    const bdg = $("cmdBdg");
+    if (bdg) { bdg.textContent = n ? n + " on" : ""; bdg.style.display = n ? "" : "none"; }
+    $("enabledCount").textContent = n + " of " + keys.length + " enabled";
+    const g = GLOBAL_TOGGLES.filter(d => !!getPath(settingsData, d.path)).length;
+    $("globalCount").textContent = g + " of " + GLOBAL_TOGGLES.length + " on";
+  }
+  function setField(name, field, value) {
+    if (!settingsData?.commands?.[name]) return;
+    settingsData.commands[name][field] = value;
+    refreshCounts();
+  }
+  function setNested(name, obj, field, value) {
+    if (!settingsData?.commands?.[name]) return;
+    settingsData.commands[name][obj] = settingsData.commands[name][obj] || {};
+    settingsData.commands[name][obj][field] = value;
+    refreshCounts();
+  }
+  function setList(name, field, csv) {
+    setField(name, field, csv.split(",").map(s => s.trim()).filter(Boolean));
+  }
+  function setNumList(name, field, csv) {
+    setField(name, field, csv.split(",").map(s => Number(s.trim())).filter(x => Number.isFinite(x)));
+  }
+  function setEnabled(name, on, el) {
+    if (!settingsData?.commands?.[name]) return;
+    settingsData.commands[name].enabled = on;
+    const root = el && el.closest ? el.closest(".cmd") : null;
+    const st = root && root.querySelector ? root.querySelector(".st") : null;
+    if (st) { st.textContent = on ? "on" : "off"; st.classList.toggle("on", on); }
+    if (root) root.classList.toggle("on", on);
+    refreshCounts();
+  }
+  function enableAll(on) {
+    if (!settingsData) return;
+    for (const c of Object.values(settingsData.commands || {})) if (c) c.enabled = on;
+    renderCommands();
+  }
+  async function saveSettings() {
+    if (!settingsData) return;
+    const res = await fetch("/api/settings", {
+      method: "PUT", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(settingsData),
+    });
+    if (res.ok) toast("Settings saved");
+    else toast("Save failed", true);
+  }
+  async function applySettings() {
+    if (!settingsData) return;
+    const putRes = await fetch("/api/settings", {
+      method: "PUT", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(settingsData),
+    });
+    if (!putRes.ok) { toast("Save failed, not applied", true); return; }
+    const res = await fetch("/api/settings/reload", { method: "POST" });
+    if (!res.ok) {
+      let msg = "Reload failed";
+      try { msg = (await res.json()).error || msg; } catch (e) { /* keep default */ }
+      toast(msg, true);
+      return;
+    }
+    toast(`Applied to ${(await res.json().catch(() => ({}))).reloaded_bots ?? "?"} bot(s)`);
+  }
+
+  async function loadAccounts() {
+    let j;
+    try { j = await (await fetch("/api/accounts")).json(); }
+    catch (e) { toast("Could not load accounts", true); return; }
+    const accs = j.accounts || [];
+    $("acctList").innerHTML = accs.map(a => `<tr>
+        <td class="mono dim">${esc(a.token_mask)}</td>
+        <td class="mono">${esc(a.channel_id)}</td>
+        <td style="text-align:right"><button class="btn quiet" onclick="removeAccount(${Number(a.index)})">Remove</button></td>
+      </tr>`).join("") || `<tr><td colspan="3"><div class="empty">No accounts yet. Add a token + channel above.</div></td></tr>`;
+    $("accountsMeta").textContent = accs.length ? accs.length + " saved" : "none yet";
+    const bdg = $("acctBdg");
+    if (bdg) { bdg.textContent = accs.length ? accs.length : ""; bdg.style.display = accs.length ? "" : "none"; }
+  }
+  async function addAccount() {
+    const token = ($("acctToken").value || "").trim();
+    const channel_id = ($("acctChannel").value || "").trim();
+    if (!token || !channel_id) { toast("Token and channel_id needed", true); return; }
+    const res = await fetch("/api/accounts", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ token, channel_id }),
+    });
+    if (res.ok) {
+      $("acctToken").value = ""; $("acctChannel").value = "";
+      await loadAccounts();
+      toast("Account added — Restart to start it");
+    } else {
+      let msg = "Add failed";
+      try { msg = (await res.json()).error || msg; } catch (e) { /* keep default */ }
+      toast(msg, true);
+    }
+  }
+  async function removeAccount(index) {
+    if (!confirm("Remove this account from tokens.txt? It stops after a Restart.")) return;
+    const res = await fetch("/api/accounts/" + Number(index), { method: "DELETE" });
+    if (res.ok) { await loadAccounts(); toast("Account removed — Restart to apply"); }
+    else toast("Remove failed", true);
+  }
+
+  async function restartBot() {
+    if (!confirm("Restart the entire bot? Grinding pauses for a few seconds.")) return;
+    const btn = $("restartBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Restarting…"; }
+    $("runStateText").textContent = "restarting…";
+    let res;
+    try { res = await fetch("/api/restart", { method: "POST" }); }
+    catch (e) { res = null; }
+    if (!res || !res.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = "Restart"; }
+      toast("Restart failed", true);
+      return;
+    }
+    toast("Restarting…");
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 2000));
       try {
-        parsed = JSON.parse(raw);
-      } catch (e) {
-        alert("Invalid JSON");
-        return;
-      }
-      const res = await fetch("/api/settings", {
-        method: "PUT",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(parsed),
-      });
-      if (!res.ok) alert("Save failed");
+        const o = await (await fetch("/api/overview")).json();
+        if (o && typeof o.uptime_s === "number" && o.uptime_s < 60) {
+          toast("Back online");
+          break;
+        }
+      } catch (e) { /* still down */ }
     }
+    if (btn) { btn.disabled = false; btn.textContent = "Restart"; }
+    loadOverview();
+  }
 
-    async function reloadSettings() {
-      const res = await fetch("/api/settings/reload", { method: "POST" });
-      if (!res.ok) {
-        alert("Reload failed");
-        return;
-      }
-      await loadOverview();
-    }
-
-    async function tick() {
-      await Promise.all([loadOverview(), loadLogs()]);
-    }
-
-    loadSettings();
-    tick();
+  async function tick() {
+    await Promise.all([loadOverview(), loadLogs()]);
+  }
+  (async function boot() {
+    applyTheme();
+    try {
+      const h = (location.hash || "").replace("#", "");
+      if (["overview", "commands", "logs", "settings", "accounts"].includes(h)) switchTab(h);
+    } catch (e) {}
+    await ensureSettings();
+    await ensureGroups();
+    renderCommands();
+    await loadAccounts();
+    await tick();
     setInterval(tick, 3000);
-  </script>
+  })();
+</script>
 </body>
 </html>
